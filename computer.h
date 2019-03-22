@@ -347,7 +347,7 @@ namespace Shell
             for(std::string arg : args)
             {
               // try to add and if that fails, update the current timestamp
-              if(curDir->children.find(arg) != curDir->children.end())
+              if(curDir->children.find(arg) == curDir->children.end())
               {
                 if(Node::HasPermissions(curUser, curDir, Write))
                   curDir->AddChild(curUser, new Node(arg, false, curDir, 1, curUser->Username(), curUser->Username()));
