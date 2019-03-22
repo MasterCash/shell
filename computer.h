@@ -92,6 +92,8 @@ namespace Shell
         // Set the root's parent to itself - makes it auto handle ../ on root. 
         // simple hack to make my life easier down the line.
         rootFile->parent = rootFile;
+        // Set the default perms for the root
+        rootFile->perms = std::array<int, 3>{7,7,7};
         // Make the root user.
         root = new User("root", true, true, "toor");
         // set the computer name.
@@ -246,13 +248,13 @@ namespace Shell
               for(auto childPair :curDir->Children())
               {
                 Node* child = childPair.second;
-                if(Node::HasPermissions(curUser, child, Permission::Read))
+                if(Node::HasPermissions(curUser, child, Read))
                 {
                   std::cout << child->PermsStr() << " " << child->NumDirs()
                             << " " << child->User() << " " << child->Group() << " "
                             << child->Size() << " " << child->TimeStr() << " "
                             // Adds blue color if it is a dir
-                            << (child->isDir ? "\033[34m" : (Node::HasPermissions(curUser, child, Permission::Execute) ? "\033[32m" : ""))
+                            << (child->isDir ? "\033[34m" : (Node::HasPermissions(curUser, child, Execute) ? "\033[32m" : ""))
                             << child->name << "\033[0m" << std::endl;
                 }
               }
@@ -270,9 +272,9 @@ namespace Shell
             // display simple output
             for(auto child : curDir->Children())
             {
-              if(Node::HasPermissions(curUser, child.second, Permission::Read))
+              if(Node::HasPermissions(curUser, child.second, Read))
               {
-                std::cout << (child.second->IsDir() ? "\033[34m" : (Node::HasPermissions(curUser, child.second, Permission::Execute) ? "\033[32m" : "")) 
+                std::cout << (child.second->IsDir() ? "\033[34m" : (Node::HasPermissions(curUser, child.second, Execute) ? "\033[32m" : "")) 
                           << child.first << "\033[0m ";
               }
             }
@@ -310,11 +312,11 @@ namespace Shell
           // else 
           else
           {
-            // iterate over arguements
+            // iterate over arguments
             for(std::string arg : args)
             {
               // Attempt to add new directory if fails output such a message.
-              if(Node::HasPermissions(curUser, curDir, Permission::Write))
+              if(Node::HasPermissions(curUser, curDir, Write))
               {
                 if(!curDir->AddChild(curUser, new Node(arg, true, curDir)))
                 {
@@ -339,22 +341,25 @@ namespace Shell
             std::cout << "touch: Invalid use - For help use: help touch\n";
           }
           // otherwise attempt do it
-          else if(!Node::HasPermissions(curUser, curDir, Permission::Write))
-          {
-            for(std::string arg : args)
-            {
-              std::cout << "touch: Cannot create '" << arg << "' Permission Denied!\n";
-            }
-          }
           else
           {
             // iterate over args
             for(std::string arg : args)
             {
               // try to add and if that fails, update the current timestamp
-              if(!curDir->AddChild(curUser, new Node(arg, false, curDir, 1, curUser->Username(), curUser->Username())))
+              if(curDir->children.find(arg) != curDir->children.end())
               {
+                if(Node::HasPermissions(curUser, curDir, Write))
+                  curDir->AddChild(curUser, new Node(arg, false, curDir, 1, curUser->Username(), curUser->Username()));
+                else
+                  std::cout << "touch: Cannot create '" << arg << "' Permission Denied!\n";
+              }
+              else
+              {
+                if(Node::HasPermissions(curUser, curDir->children[arg], Write))
                   curDir->children[arg]->UpdateTimeStamp();
+                else
+                  std::cout << "touch: Cannot update '" << arg << "' Permission Denied!\n";
               }
             }
           }
@@ -375,7 +380,7 @@ namespace Shell
             else curDir = 
               rootFile->children["home"]->children[curUser->Username()];
             // if their directory doesn't exist anymore, put them at the root.
-            if(curDir == nullptr)
+            if(curDir == nullptr || !Node::HasPermissions(curUser, curDir, Execute))
               curDir = rootFile;
           }
           // if there is args and it is more than one
@@ -395,7 +400,7 @@ namespace Shell
                 std::cout << "cd: " << args[0] << " Not a directory\n";
               else
               {
-                if(Node::HasPermissions(curUser, file, Permission::Read))
+                if(Node::HasPermissions(curUser, file, Execute))
                   // else set curDir to it
                   curDir = file;
                 else
@@ -470,8 +475,7 @@ namespace Shell
                 // error
                 std::cout << "rm: File '" << arg << "' not found\n";
               }
-              else if(!Node::HasPermissions(curUser, file,
-               Permission::Write))
+              else if(!Node::HasPermissions(curUser, file, Write))
               {
                 std::cout << "rm: failed to remove '" << arg << "': Permission Denied!\n";
               }
@@ -498,7 +502,7 @@ namespace Shell
                 // delete the file if it isn't the root.
                 if(file != rootFile)
                 {
-                  file->parent->DeleteChild(curUser, file);
+                  file->parent->DeleteChild(root, file);
                   delete file;
                 }
                 // else error
@@ -559,7 +563,7 @@ namespace Shell
                   // error 
                   std::cout << "chmod: File '" << arg << "' does not exist\n";
                 }
-                else if(file->User() != curUser->Username() && curUser != root)
+                else if(!Node::HasPermissions(curUser, file, Write))
                 {
                   std::cout << "chmod: File '" << arg << "' Permission Denied\n";
                 }
@@ -758,14 +762,14 @@ namespace Shell
         {
           if(args.size() != 2)
           {
-            std::cout << "chown: Invalid number of arguments\n";
+            std::cout << "chown: invalid number of arguments\n";
           }
           else
           {
             Node* file = findFile(args[1]);
             if(file == nullptr)
             {
-              std::cout << "chown: Error File '" << args[1] << "' doesn't exist\n";
+              std::cout << "chown: error file '" << args[1] << "' doesn't exist\n";
             }
             else
             {
@@ -782,12 +786,28 @@ namespace Shell
                 {
                   std::cout << "chown: invalid group '" << args[0] << "'\n";
                 }
-                file->group = group;
-                file->user = owner; 
+                else if(!Node::HasPermissions(curUser, file, Write))
+                {
+                  std::cout << "chown: permission denied\n";
+                }
+                else
+                {
+                  file->group = group;
+                  file->user = owner; 
+                }
               }
               else
               {
-                file->user = args[0];
+                if(users.find(args[0]) == users.end())
+                {
+                  std::cout << "chown: invalid user '" << args[0] << "'\n";
+                }
+                else if(!Node::HasPermissions(curUser, file, Write))
+                {
+                  std::cout << "chown: permission denied\n";
+                }
+                else
+                 file->user = args[0];
               }
             }
           }
@@ -796,15 +816,17 @@ namespace Shell
         {
           if(args.size() != 2)
           {
-            std::cout << "chgrp: Invalid amount of arguments\n";
+            std::cout << "chgrp: invalid amount of arguments\n";
           }
           else
           {
             Node* file = findFile(args[1]);
             if(file == nullptr)
               std::cout << "chgrp: error file '" << args[1] << "' doesn't exist\n";
-            if(groups.find(args[0]) == groups.end())
+            else if(groups.find(args[0]) == groups.end())
               std::cout << "chgrp: invalid group '" << args[0] << "'\n";
+            else if(!Node::HasPermissions(curUser, file, Write))
+              std::cout << "chgrp: permission denied\n";
             else
               file->group = args[0];
           }
@@ -824,7 +846,7 @@ namespace Shell
         {
           if(args.size() != 1)
           {
-            std::cout << "switchto: Invalid number of arguments\n";
+            std::cout << "switchto: invalid number of arguments\n";
           }
           else
           {
@@ -982,7 +1004,7 @@ namespace Shell
             std::cout << "Command '" << command << "' not found.\n";
           else if(file->IsDir())
             std::cout << file->Name() << " is a folder\n";
-          else if(!Node::HasPermissions(curUser, file, Permission::Execute))
+          else if(!Node::HasPermissions(curUser, file, Execute))
             std::cout << command << ": Permission Denied\n";
           else
             std::cout << file->Name() << " executed\n";
