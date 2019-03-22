@@ -19,7 +19,8 @@ namespace Shell
   // share with computer
   class Computer;
   // constants because I am lazy 
-  const std::array<int, 3> DEFAULT_PERM = {6,6,4};
+  const std::array<int, 3> DEFAULT_PERM_FILE = {6,4,4};
+  const std::array<int, 3> DEFAULT_PERM_FOLDER = {7,5,5};
   const std::array<std::string, 12> MONTHS = 
   {
     "Jan", "Feb", "Mar", "Apr", "May", 
@@ -70,7 +71,7 @@ namespace Shell
         user = u;
         group = g;
         size = s;
-        perms = DEFAULT_PERM;
+        perms = isDir ? DEFAULT_PERM_FOLDER : DEFAULT_PERM_FILE;
       }
       Node(std::string n, bool dir, Node* p) : Node(n, dir, p, 1, p->user, p->group) { }
       // deconstructor

@@ -569,7 +569,7 @@ namespace Shell
                 }
                 else if(rootFile == file)
                 {
-                  std::cout << "chmod: cannot modify permisions of the root\n";
+                  std::cout << "chmod: cannot modify permissions of the root\n";
                 }
                 // else
                 else
