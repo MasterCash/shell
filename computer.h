@@ -567,6 +567,10 @@ namespace Shell
                 {
                   std::cout << "chmod: File '" << arg << "' Permission Denied\n";
                 }
+                else if(rootFile == file)
+                {
+                  std::cout << "chmod: cannot modify permisions of the root\n";
+                }
                 // else
                 else
                 {
