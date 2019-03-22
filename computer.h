@@ -199,8 +199,8 @@ namespace Shell
           if(pos > -1)
             dir = "~" + dir.substr(pos + curUser->Username().length());
           // output the status line. 
-          std::cout << curUser->Username() << "@" << computerName <<":" << dir
-               << (curUser == root ? "#" : "$") << " ";
+          std::cout << "\033[32m" << curUser->Username() << "@" << computerName <<"\033[0m:\033[34m" << dir
+               << (curUser == root ? "\033[0m#" : "\033[0m$") << " ";
           // Get input from the user.
           std::getline(std::cin, input);
           // Parse it and handle it.
@@ -588,13 +588,18 @@ namespace Shell
         }
         else if (command == "groupadd")
         {
+          // wrong num args
           if(args.size() < 1)
             std::cout << "groupadd: Invalid number of arguments\n" << std::endl;
+          // go over all args
           for(std::string arg : args)
           {
+            // if not valid
             if(groups.find(arg) == groups.end())
+              // complain
               std::cout << "groupadd: group '" << arg << "' already exists\n";
             else
+              // else create
               groups.insert(arg);
           }
         }
@@ -606,6 +611,7 @@ namespace Shell
           }
           else
           {
+            // check for flags
             if(args[0] != "-a")
               std::cout << "usermod: Invalid flag '" << args[0] << "'\n";
             else if(args[1] != "-G")
@@ -615,11 +621,13 @@ namespace Shell
               int count = 0;
               for(std::string arg : args)
               {
+                // hacky way to ignore the first 2 args
                 if(count < 2)
                 {
                   count++;
                   continue;
                 }
+
                 if(groups.find(arg) == groups.end())
                 {
                   std::cout << "usermod: Invalid group '" << arg << "'\n";
@@ -630,54 +638,63 @@ namespace Shell
                 } 
                 else
                 {
+                  // if valid group that we aren't in, add it to our groups
                   curUser->AddToGroup(arg);
                 }
-                
               }
             }
-            
           }
-          
         }
         else if (command == "useradd")
         {
           User* usr;
+          //TODO: make this work so you can add multiple users at once
           if(args.size() < 1)
           {
             std::cout << "useradd: Invalid number of arguments\n"; 
           }
+          // if didn't find user...
           else if(users.find(args[args.size() - 1]) != users.end())
           {
             std::cout << "useradd: User '" << args[args.size() - 1] << "' already exists\n";
           }
+          // if more than one arg means adding group as well
           else if(args.size() > 1)
           {
             if(args.size() != 3)
             {
               std::cout << "useradd: invalid number of arguments\n";
             }
+            // check to make sure we have our flag
             else if(args[0] != "-G")
             {
               std::cout << "useradd: invalid flag '" << args[0] << "'\n";
             }
             else 
             {
+              // add user
               usr = AddUser(args[2], "");
+              // get groups to add to user
               std::string groupsToAdd = args[1];
+              // change to space delimited list 
               for(uint k = 0; k < groupsToAdd.size(); k++)
               {
                 if(groupsToAdd[k] == ',')
                   groupsToAdd[k] = ' ';
               }
+              // insert into a string stream for extracting
               std::stringstream groupsAdding(groupsToAdd);
+              // iterate over all the groups
               while(groupsAdding >> groupsToAdd)
               {
+                // if not valid complain
                 if(groups.find(groupsToAdd) == groups.end())
                 {
                   std::cout << "useradd: invalid group '" << groupsToAdd << "'\n";
                 }
                 else
                 {
+                  // add group to user
                   usr->AddToGroup(groupsToAdd);
                 }
               }
@@ -685,12 +702,14 @@ namespace Shell
           }
           else
           {
+            // else add user
             AddUser(args[0], "");
           }
           
         }
         else if (command == "userdel")
         {
+          // Invalidate
           if(args.size() < 1)
           {
             std::cout << "userdel: Invalid number of arguments\n";
@@ -717,6 +736,7 @@ namespace Shell
             {
               std::cout << "userdel: User '" << args[2] << "' isn't in group '" << args[1] << "'\n";
             }
+            // all good to remove
             else
             {
               users[args[2]]->RemoveFromGroup(args[1]);
@@ -736,6 +756,7 @@ namespace Shell
           }
           else
           {
+            // all good to remove
             User* usr = users[args[0]];
             users.erase(usr->Username());
             delete usr;
@@ -754,8 +775,10 @@ namespace Shell
           else
           {
             std::cout << args[0] << ": ";
+            // iterate over all groups in user
             for(std::string group : users[args[0]]->Groups())
             {
+              // print them out
               std::cout << group << " ";
             }
             std::cout << std::endl;
@@ -770,6 +793,7 @@ namespace Shell
           }
           else
           {
+            // find file
             Node* file = findFile(args[1]);
             if(file == nullptr)
             {
@@ -777,11 +801,14 @@ namespace Shell
             }
             else
             {
+              // check for "user:group" format
               int pos = args[0].find(':');
+              // if found it then parse it
               if(pos >= 0)
               {
                 std::string owner = args[0].substr(0, pos + 1);
                 std::string group = args[0].substr(pos);
+                // invalidate
                 if(users.find(owner) == users.end())
                 {
                   std::cout << "chown: invalid user '" << args[0] << "'\n";
@@ -796,12 +823,15 @@ namespace Shell
                 }
                 else
                 {
+                  // good to go
                   file->group = group;
                   file->user = owner; 
                 }
               }
+              // else just user
               else
               {
+                // invalidate
                 if(users.find(args[0]) == users.end())
                 {
                   std::cout << "chown: invalid user '" << args[0] << "'\n";
@@ -811,7 +841,8 @@ namespace Shell
                   std::cout << "chown: permission denied\n";
                 }
                 else
-                 file->user = args[0];
+                  // good to go
+                  file->user = args[0];
               }
             }
           }
@@ -824,6 +855,7 @@ namespace Shell
           }
           else
           {
+            // find file
             Node* file = findFile(args[1]);
             if(file == nullptr)
               std::cout << "chgrp: error file '" << args[1] << "' doesn't exist\n";
@@ -831,6 +863,7 @@ namespace Shell
               std::cout << "chgrp: invalid group '" << args[0] << "'\n";
             else if(!Node::HasPermissions(curUser, file, Write))
               std::cout << "chgrp: permission denied\n";
+            // set group
             else
               file->group = args[0];
           }
@@ -843,11 +876,13 @@ namespace Shell
           }
           else
           {
+            // simple print who this user is
             std::cout << curUser->Username() << std::endl;
           }
         }
         else if (command == "switchto")
         {
+          // switches to another user
           if(args.size() != 1)
           {
             std::cout << "switchto: invalid number of arguments\n";
@@ -866,6 +901,7 @@ namespace Shell
               {
                 std::cout << "switchto: already on user '" << args[0] << "'\n";
               }
+              // if they have a password then validate it
               else if(user->HasPassword())
               {
                 std::string password;
@@ -905,6 +941,7 @@ namespace Shell
           }
           else if(args[0] == "-a")
           {
+            // print all commands help pages
             for(std::string arg : CMDS)
             {
               std::vector<std::string> args;
@@ -1003,6 +1040,7 @@ namespace Shell
         // else handle no command found
         else
         {
+          // check to see if we are trying to run an executable
           Node* file = findFile(command);
           if(file == nullptr)
             std::cout << "Command '" << command << "' not found.\n";
@@ -1013,7 +1051,6 @@ namespace Shell
           else
             std::cout << file->Name() << " executed\n";
         }
-        
         return true;
       }
       // returns the current working directory
@@ -1084,15 +1121,21 @@ namespace Shell
         // return if we found it or no
         return succeed ? next : nullptr;
       }
-
+      // adds another user with the given name and the group
+      // returns the pointer to the new user nullptr if already exists
       User* AddUser(std::string name, std::string group)
       {
+        // make sure there isn't a user currently
         if(users.find(name) != users.end())
           return nullptr;
+        // add the new user
         users.emplace(name, new User(name, false, false, ""));
+        // make their home directory
         rootFile->children["home"]->AddChild(root, new Node(name, true, rootFile->children["home"], 1, name, name));
+        // add them to the group if it exists
         if(groups.find(group) != groups.end())
           users[name]->AddToGroup(group);
+        // return new user pointer
         return users[name];
       }  
   };
