@@ -141,7 +141,11 @@ namespace Shell
         // if logged in or not
         bool loggedIn = false;
         curUser = nullptr;
-
+        if(!std::cin)
+        {
+          std::cout << "ISSUE!" << std::endl;
+          throw "broken whatttt?";
+        }
         // Login loop
         do
         {
