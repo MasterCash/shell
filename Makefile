@@ -1,5 +1,7 @@
 # Makefile
 
+EXE = shell
+
 SOURCES = $(wildcard *.cpp)
 HEADERS = $(wildcard *.h)
 HEADS = $(wildcard *.hpp)
@@ -9,7 +11,7 @@ CPP = g++
 CFLAGS = -Wall --pedantic-errors -g -std=c++11
 
 program: ${OBJECTS}
-	-@${CPP} ${CFLAGS} ${OBJECTS} -o shell
+	-@${CPP} ${CFLAGS} ${OBJECTS} -o ${EXE}
 	-@echo Compliation Complete
 
 %.o: %.cpp ${HEADERS} ${HEADS}
@@ -17,9 +19,9 @@ program: ${OBJECTS}
 
 .PHONY: clean
 clean:
-	-@rm -f program
+	-@rm -f ${EXE}
 	-@rm -f ${OBJECTS}
 run:
-	-@./shell
+	-@./${EXE}
 val:
-	-@valgrind ./shell
+	-@valgrind ./${EXE}
