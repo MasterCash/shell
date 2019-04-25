@@ -1,9 +1,16 @@
+#ifndef TASK_H
+#define TASK_H
 #include <list>
+#ifndef ull
+#define ull unsigned long long
+#endif
 
-enum STATUS {DONE, WORKING, ERROR};
 
 class Task
 {
+  public:
+    enum STATUS {DONE, WORKING, ERROR};
+
   private:
     static unsigned long long ID_COUNTER;
     unsigned long long id;
@@ -17,7 +24,9 @@ class Task
     unsigned long long ProcessTime() const { return processTime; }
     unsigned long long TimeRemaining() const { return timeRemaining; }
     unsigned int MemoryUsage() const { return memoryUsage; }
-    STATUS Status() { return status; }
+    STATUS Status() const { return status; }
+
+    void Kill() { status = ERROR; }
 
     void Run(const unsigned long long time)
     {
@@ -43,3 +52,4 @@ class Task
 };
 
 unsigned long long Task::ID_COUNTER = 0;
+#endif
