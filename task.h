@@ -9,7 +9,7 @@
 class Task
 {
   public:
-    enum STATUS {DONE, WORKING, ERROR};
+    enum Status {done, working, error};
 
   private:
     static unsigned long long ID_COUNTER;
@@ -17,26 +17,26 @@ class Task
     unsigned long long processTime;
     unsigned long long timeRemaining;
     unsigned int memoryUsage;
-    STATUS status;
+    Status status;
 
   public:
     unsigned long long ID() const { return id; }
     unsigned long long ProcessTime() const { return processTime; }
     unsigned long long TimeRemaining() const { return timeRemaining; }
     unsigned int MemoryUsage() const { return memoryUsage; }
-    STATUS Status() const { return status; }
+    Status Status() const { return status; }
 
-    void Kill() { status = ERROR; }
+    void Kill() { status = error; }
 
     void Run(const unsigned long long time)
     {
-      if(status == WORKING)
+      if(status == working)
       {
         timeRemaining -= time;
         if(timeRemaining <= 0)
         {
           timeRemaining = 0;
-          status = DONE;
+          status = done;
         }
       }
     }
@@ -47,7 +47,7 @@ class Task
       processTime = pTime;
       memoryUsage = memUsage;
       timeRemaining = memoryUsage;
-      status = WORKING;
+      status = working;
     }
 };
 

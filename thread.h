@@ -13,15 +13,26 @@
  */
 class Thread
 {
+  public:
+    enum ScheduleType {fifo, roundrobin2, shortestprocess};
   private:
+    ScheduleType type;
     /**
      * Counter to make sure each Thread has a unique Identifier
      */
     static ull ID_COUNT;
     /**
-     * dictionary of running tasks
+     * dictionary of waiting tasks
      */
     std::map<ull, Task*> tasks;
+    /**
+     * list of IDS in order of arrival waiting to be processed.
+     */
+    std::list<ull> waitingIDs;
+    /**
+     * current task running
+     */
+    Task* runningTask;
     /**
      * dictionary of finished tasks
      */
@@ -44,7 +55,7 @@ class Thread
      * Initialize a Thread 
      * @param  mem  memory this thread starts with
      */
-    Thread(ull mem) : memory(mem), freeMemory(mem), id(ID_COUNT++) { }
+    Thread(ull mem, ScheduleType t) : type(t), memory(mem), freeMemory(mem), id(ID_COUNT++) { runningTask = nullptr; }
     /**
      * Deconstructs the Thread
      * handles its dictionary of pointers
@@ -56,6 +67,9 @@ class Thread
 
       for(auto taskPair : history)
         delete taskPair.second;
+
+      if(runningTask != nullptr)
+        delete runningTask;
 
       tasks.empty();
       history.empty();
@@ -69,11 +83,11 @@ class Thread
     /** returns if the thread has a finished task with the given id */
     bool HasCompletedTask(ull id) const { return history.find(id) == history.end(); }
     /** 
-     * Gets a running task from the thread
+     * Gets a waiting task from the thread
      * @param  iD  id of the task you want
-     * @return returns the task if there is one
+     * @return  returns the task if there is one
      */
-    const Task* const GetRunningTask(ull iD) const
+    const Task* const GetWaitingTask(ull iD) const
     {
       Task* task;
       auto taskIt = tasks.find(iD);
@@ -84,10 +98,18 @@ class Thread
 
       return task;
     }
+    /**
+     * Gets the current running task from the thread
+     * @return  returns the task if there is one that is running.
+     */
+    const Task* const GetRunningTask() const
+    {
+      return runningTask;
+    }
     /** 
      * Gets a finished task from the thread
      * @param  iD  id of the task you want
-     * @return returns the task if there is one
+     * @return  returns the task if there is one
      */
     const Task* const GetFinishedTask(ull iD) const
     {
@@ -114,7 +136,10 @@ class Thread
       {
         added = tasks.emplace(task->ID(), task).second;
         if(added)
+        {
           freeMemory -= task->MemoryUsage();
+          waitingIDs.push_back(task->ID());
+        }
       }
       return added; 
     }
@@ -128,12 +153,20 @@ class Thread
     {
       bool killed = false;
       auto taskIt = tasks.find(_id);
-      if(taskIt != tasks.end())
+      if(_id == runningTask->ID())
+      {
+        killed = true;
+        runningTask->Kill();
+        history.emplace(_id, runningTask);
+        runningTask = nullptr;
+      }
+      else if(taskIt != tasks.end())
       {
         killed = true;
         taskIt->second->Kill();
         history.emplace((*taskIt));
         tasks.erase(taskIt->first);
+        waitingIDs.remove(_id);
       }
       return killed;
     }
@@ -149,19 +182,94 @@ class Thread
     std::list<ull> Update(ull time)
     {
       std::list<ull> completedIDs;
-      for(auto taskPair : tasks)
+
+      if(runningTask == nullptr)
       {
-        taskPair.second->Run(time);
-        if(taskPair.second->Status() == Task::DONE)
+        if(type == fifo || type == roundrobin2)
         {
-          completedIDs.push_back(taskPair.first);
-          history.emplace(taskPair);
-          freeMemory += taskPair.second->MemoryUsage();
+          runningTask = tasks[waitingIDs.front()];
+          waitingIDs.pop_front();
+          tasks.erase(runningTask->ID());
+        }
+        else if(type == shortestprocess)
+        {
+          ull _id = waitingIDs.front();
+          for (auto id : waitingIDs)
+          {
+            if(tasks[_id]->ProcessTime() > tasks[id]->ProcessTime())
+              _id = id;
+          }
+          runningTask = tasks[_id];
+          tasks.erase(_id);
+          waitingIDs.remove(_id);
         }
       }
+      switch (type)
+      {
+      case fifo:
+        while(time > 0)
+        {
+          ull left = runningTask->TimeRemaining();
+          runningTask->Run(time);
+          time -= left;
+          if(runningTask->Status() == Task::done)
+          {
+            completedIDs.push_back(runningTask->ID());
+            history.emplace(runningTask->ID(), runningTask);
+            runningTask = tasks[waitingIDs.front()];
+            tasks.erase(waitingIDs.front());
+            waitingIDs.pop_front();
+          }
+        }
+        break;
+      case roundrobin2: 
+        while (time > 0)
+        {
+          runningTask->Run(2);
+          if(runningTask->Status() == Task::done)
+          {
+            completedIDs.push_back(runningTask->ID());
+            history.emplace(runningTask->ID(), runningTask);
+            runningTask = tasks[waitingIDs.front()];
+            tasks.erase(waitingIDs.front());
+            waitingIDs.pop_front();
+          }
+          else
+          {
+            tasks.emplace(runningTask->ID(), runningTask);
+            waitingIDs.push_back(runningTask->ID());
+            runningTask = tasks[waitingIDs.front()];
+            tasks.erase(waitingIDs.front());
+            waitingIDs.pop_front();
+          }
+          time -= 2;
+        }
+        break;
+      case shortestprocess: 
+        while(time > 0)
+        {
+          ull _id;
+          ull left = runningTask->TimeRemaining();
+          runningTask->Run(time);
+          time -= left;
+          if(runningTask->Status() == Task::done)
+          {
+            completedIDs.push_back(runningTask->ID());
+            history.emplace(runningTask->ID(), runningTask);
 
-      for(ull id : completedIDs)
-        tasks.erase(id);
+            _id = waitingIDs.front();
+            for (auto id : waitingIDs)
+            {
+              if(tasks[_id]->ProcessTime() > tasks[id]->ProcessTime())
+                _id = id;
+            }
+            runningTask = tasks[_id];
+            tasks.erase(_id);
+            waitingIDs.remove(_id);
+          }
+        }
+        break;
+      }
       return completedIDs;
     }
 };
