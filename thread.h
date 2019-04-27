@@ -81,6 +81,13 @@ class Thread
       auto taskIt = tasks.find(_id);
       return taskIt == tasks.end() ? false : taskIt->second->Status() == Task::done; 
     }
+    /**
+     * gets all the task from the thread
+     * NOTE: modifying the pointers will cause undefined behavior
+     *       pointers should be treated like const Task* const
+     * @return  map of all tasks
+     */
+    const std::map<ull, Task*> GetTasks() const { return tasks; }
     /** 
      * Gets a task from the thread
      * @param  iD  id of the task you want
