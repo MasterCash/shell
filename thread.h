@@ -92,8 +92,8 @@ class Thread
     const Task* const GetFinishedTask(ull iD) const
     {
       Task* task;
-      auto taskIt = tasks.find(iD);
-      if(taskIt != tasks.end())
+      auto taskIt = history.find(iD);
+      if(taskIt != history.end())
         task = taskIt->second;
       else 
         task = nullptr;
@@ -143,7 +143,7 @@ class Thread
      * @param  time  time since last called
      * @return list of finished tasked
      * 
-     * the update funtion of a thread, Should be called by 
+     * the update function of a thread, Should be called by 
      * the "Computer" with time since last call.
      */
     std::list<ull> Update(ull time)
