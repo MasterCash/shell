@@ -22,21 +22,21 @@ class Thread
      */
     static ull ID_COUNT;
     /**
-     * dictionary of waiting tasks
+     * dictionary of all tasks on thread
      */
     std::map<ull, Task*> tasks;
     /**
-     * list of IDS in order of arrival waiting to be processed.
+     * list of IDs in order of arrival waiting to be processed.
      */
     std::list<ull> waitingIDs;
+    /** 
+     * list of IDs in order of completion of being processed.
+     */
+    std::list<ull> finishedIDs;
     /**
      * current task running
      */
     Task* runningTask;
-    /**
-     * dictionary of finished tasks
-     */
-    std::map<ull, Task*> history;
     /**
      * total memory this thread has access to
      */
@@ -65,33 +65,32 @@ class Thread
       for(auto taskPair : tasks)
         delete taskPair.second;
 
-      for(auto taskPair : history)
-        delete taskPair.second;
-
-      if(runningTask != nullptr)
-        delete runningTask;
+      runningTask = nullptr;
 
       tasks.empty();
-      history.empty();
     }
     /** returns the total Memory of the thread */ 
     ull TotalMemory() const { return memory; }
     /** returns the free Memory of the thread */
     ull FreeMemory() const { return freeMemory; }
     /** returns if the thread has a running task with the given id */
-    bool HasRunningTask(ull id) const { return tasks.find(id) == tasks.end(); }
+    bool HasTask(ull id) const { return tasks.find(id) == tasks.end(); }
     /** returns if the thread has a finished task with the given id */
-    bool HasCompletedTask(ull id) const { return history.find(id) == history.end(); }
+    bool HasCompletedTask(ull _id) const 
+    { 
+      auto taskIt = tasks.find(_id);
+      return taskIt == tasks.end() ? false : taskIt->second->Status() == Task::done; 
+    }
     /** 
-     * Gets a waiting task from the thread
+     * Gets a task from the thread
      * @param  iD  id of the task you want
      * @return  returns the task if there is one
      */
-    const Task* const GetWaitingTask(ull iD) const
+    const Task* const GetTask(ull iD) const
     {
       Task* task;
       auto taskIt = tasks.find(iD);
-      if(taskIt != tasks.end())
+      if(taskIt != tasks.end()) 
         task = taskIt->second;
       else 
         task = nullptr;
@@ -105,21 +104,6 @@ class Thread
     const Task* const GetRunningTask() const
     {
       return runningTask;
-    }
-    /** 
-     * Gets a finished task from the thread
-     * @param  iD  id of the task you want
-     * @return  returns the task if there is one
-     */
-    const Task* const GetFinishedTask(ull iD) const
-    {
-      Task* task;
-      auto taskIt = history.find(iD);
-      if(taskIt != history.end())
-        task = taskIt->second;
-      else 
-        task = nullptr;
-      return task;
     }
     /**
      * Adds a task to the thread to start running
@@ -141,6 +125,7 @@ class Thread
         {
           //freeMemory -= task->MemoryUsage();
           waitingIDs.push_back(task->ID());
+          task->Block();
         }
         /*
       }
@@ -161,15 +146,14 @@ class Thread
       {
         killed = true;
         runningTask->Kill();
-        history.emplace(_id, runningTask);
+        finishedIDs.push_back(_id);
         runningTask = nullptr;
       }
       else if(taskIt != tasks.end())
       {
         killed = true;
         taskIt->second->Kill();
-        history.emplace((*taskIt));
-        tasks.erase(taskIt->first);
+        finishedIDs.push_back(taskIt->second->ID());
         waitingIDs.remove(_id);
       }
       return killed;
@@ -193,7 +177,6 @@ class Thread
         {
           runningTask = tasks[waitingIDs.front()];
           waitingIDs.pop_front();
-          tasks.erase(runningTask->ID());
         }
         else if(type == shortestprocess)
         {
@@ -204,7 +187,6 @@ class Thread
               _id = id;
           }
           runningTask = tasks[_id];
-          tasks.erase(_id);
           waitingIDs.remove(_id);
         }
       }
@@ -219,9 +201,8 @@ class Thread
           if(runningTask->Status() == Task::done)
           {
             completedIDs.push_back(runningTask->ID());
-            history.emplace(runningTask->ID(), runningTask);
+            finishedIDs.push_back(runningTask->ID());
             runningTask = tasks[waitingIDs.front()];
-            tasks.erase(waitingIDs.front());
             waitingIDs.pop_front();
           }
         }
@@ -233,17 +214,15 @@ class Thread
           if(runningTask->Status() == Task::done)
           {
             completedIDs.push_back(runningTask->ID());
-            history.emplace(runningTask->ID(), runningTask);
+            finishedIDs.push_back(runningTask->ID());
             runningTask = tasks[waitingIDs.front()];
-            tasks.erase(waitingIDs.front());
             waitingIDs.pop_front();
           }
           else
           {
-            tasks.emplace(runningTask->ID(), runningTask);
+            runningTask->Block();
             waitingIDs.push_back(runningTask->ID());
             runningTask = tasks[waitingIDs.front()];
-            tasks.erase(waitingIDs.front());
             waitingIDs.pop_front();
           }
           time -= 2;
@@ -259,7 +238,7 @@ class Thread
           if(runningTask->Status() == Task::done)
           {
             completedIDs.push_back(runningTask->ID());
-            history.emplace(runningTask->ID(), runningTask);
+            finishedIDs.push_back(runningTask->ID());
 
             _id = waitingIDs.front();
             for (auto id : waitingIDs)
@@ -268,7 +247,6 @@ class Thread
                 _id = id;
             }
             runningTask = tasks[_id];
-            tasks.erase(_id);
             waitingIDs.remove(_id);
           }
         }
