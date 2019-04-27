@@ -132,15 +132,19 @@ class Thread
     bool AddTask(Task* task) 
     { 
       bool added = false;
+      /*
       if(task->MemoryUsage() <= freeMemory)
       {
+        */
         added = tasks.emplace(task->ID(), task).second;
         if(added)
         {
-          freeMemory -= task->MemoryUsage();
+          //freeMemory -= task->MemoryUsage();
           waitingIDs.push_back(task->ID());
         }
+        /*
       }
+      */
       return added; 
     }
 
