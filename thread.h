@@ -15,6 +15,7 @@ class Thread
 {
   public:
     enum ScheduleType {fifo, roundrobin2, shortestprocess};
+    static std::array<std::string, 3> TypeName;
   private:
     ScheduleType type;
     /**
@@ -69,6 +70,10 @@ class Thread
 
       tasks.empty();
     }
+    /** returns the Type of the thread scheduling */
+    ScheduleType Type() const { return type; }
+    /** returns the ID of the thread */
+    ull ID() const { return id; }
     /** returns the total Memory of the thread */ 
     ull TotalMemory() const { return memory; }
     /** returns the free Memory of the thread */
@@ -264,4 +269,5 @@ class Thread
 };
 
 unsigned long long Thread::ID_COUNT = 0;
+std::array<std::string, 3> Thread::TypeName = {"First In First Out", "Round Robbin 2", "Shortest Process First"};
 #endif
