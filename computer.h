@@ -5,6 +5,10 @@
 #include <sstream>
 #include <map>
 #include <string>
+#ifndef ull
+#define ull unsigned long long
+#endif
+#include "thread.h"
 
 #ifndef COMPUTER_H
 #define COMPUTER_H
@@ -51,8 +55,14 @@ namespace Shell
       User* root;
       // The name of this computer
       std::string computerName;
+      /**
+       * set of the groups aviable
+       */
       std::set<std::string> groups;
-
+      /**
+       * map of current threads
+       */
+      std::map<ull, Thread*> threads;
 
     // Public functions
     public:
@@ -69,8 +79,11 @@ namespace Shell
       {
         // Users are a pair so second is the actual user.
         // Delete all users.
-        for(auto user : users)
-          delete user.second;
+        for(auto userPair : users)
+          delete userPair.second;
+
+        for(auto threadPair : threads)
+          delete threadPair.second;
         // Delete the root : let its deconstructor handle deleting
         // the rest of the file system.
         delete rootFile;
@@ -119,6 +132,8 @@ namespace Shell
         groups.insert("root");
         groups.insert("wheel");
         root->AddToGroup("wheel");
+        Thread* thread = new Thread(10000000, Thread::fifo);
+        threads.emplace(thread->ID(), thread);
       }
 
       // Running the computer. Handles all operations from here.
@@ -936,6 +951,76 @@ namespace Shell
           
         }
         // Handle help command
+        else if(command == "thread")
+        {
+          if(args.size() < 1)
+          {
+            std::cout << "thread: missing argument" << std::endl;  
+          }
+          else
+          {
+            if(args[0] == "list")
+            {
+              std::cout << " ID |           type         | num tasks | " << std::endl;
+              for(auto threadPair : threads)
+              {
+                std::string type = Thread::TypeName[threadPair.second->Type()];
+                std::string spaces = "";
+                int count = Thread::TypeName[2].size() - type.size();
+                for(int i = 0; i < count; i++)
+                  spaces += " ";
+                std::cout << " " << threadPair.second->ID() << "    " << type << spaces << "     "<< threadPair.second->GetTasks().size() << std::endl; 
+              }
+            }
+            else if(args.size() < 2)
+            {
+              std::cout << "thread: missing argument" << std::endl;
+            }
+            else
+            {
+              if(args[0] == "create")
+              {
+              
+                try
+                {
+                  Thread::ScheduleType type = static_cast<Thread::ScheduleType>(std::stoi(args[1]));
+                  if(type < Thread::fifo || type > Thread::shortestprocess)
+                    throw std::exception();
+                  Thread* thread = new Thread(1000000, type);
+                  threads.emplace(thread->ID(), thread);
+                }
+                catch(const std::exception)
+                {
+                  std::cout << "thread: invalid schedule type '" << args[1] << "'\n";
+                }
+                
+              }
+              else if(args[0] == "delete")
+              {
+                try
+                {
+                  int id = std::stoi(args[1]);
+                  if(threads.find(id) == threads.end())
+                    throw std::exception();
+                  delete threads[id];
+                  threads.erase(id);
+                }
+                catch(const std::exception)
+                {
+                  std::cout << "thread: invalid Thread ID '" << args[1] << "'\n";
+                }
+                
+              }
+              else
+              {
+                std::cout << "thread: invalid argument '" << args[0] << "'\n";
+              }
+              
+            }
+            
+          }
+          
+        }
         else if(command == "help")
         {
           if(args.size() == 0)
@@ -1034,7 +1119,13 @@ namespace Shell
           }
           else if(args[0] == "switchto")
           {
-            std::cout << "Usage: switchto user : attempts to switch users, users with passwords will be prompted";
+            std::cout << "Usage: switchto user : attempts to switch users, users with passwords will be prompted\n";
+          }
+          else if(args[0] == "thread")
+          {
+            std::cout << "Usage: thread list : lists all current threads available to the computer\n";
+            std::cout << "Usage: thread create <type id> : creates a thread with given scheduling type\n";
+            std::cout << "Usage: thread delete <thread id> : killed the thread with the given id\n";
           }
           else 
           {
