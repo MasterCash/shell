@@ -42,6 +42,10 @@ class Task
      * Status of this Process.
      */
     Status status;
+    /**
+     * Name of the mother program
+     */
+    std::string name;
 
   public:
     /**
@@ -111,13 +115,16 @@ class Task
      * each process will have its own unique id set up on creation
      * and is intialized in waiting status.
      */
-    Task(unsigned long long pTime, unsigned int memUsage)
+    Task(unsigned long long pTime, unsigned int memUsage, std::string name = "")
     {
       id = ID_COUNTER++;
       processTime = pTime;
       memoryUsage = memUsage;
       timeRemaining = memoryUsage;
       status = waiting;
+      if (name.size() == 0) {
+        name = "Unknown";
+      }
     }
 };
 
