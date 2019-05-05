@@ -78,6 +78,9 @@ namespace Shell
 
         tasks.empty();
       }
+      int NumTasks() const { return tasks.size(); }
+      int NumWaitingTasks() const { return waitingIDs.size(); }
+      int NumFinishedTasks() const { return finishedIDs.size(); }
       bool Locked() const { return isLocked; }
       /** returns the Type of the thread scheduling */
       ScheduleType Type() const { return type; }
@@ -200,7 +203,7 @@ namespace Shell
         GetLock();
         // std::cout << "Finished locking on thread: " << id << std::endl;
         std::list<ull> completedIDs;
-        if(waitingIDs.size() == 0)
+        if(runningTask == nullptr && waitingIDs.size() == 0)
         {
           Unlock();
           return completedIDs;
@@ -227,97 +230,125 @@ namespace Shell
         }
         switch (type)
         {
-        case fifo:
-          while(time > 0)
-          {
-            ull left = runningTask->TimeRemaining();
-            runningTask->Run(time);
-            if(time > left)
-              time -= left;
-            else time = 0;
-            if(runningTask->Status() == Task::done)
+          case fifo:
+            while(time > 0)
             {
-              completedIDs.push_back(runningTask->ID());
-              finishedIDs.push_back(runningTask->ID());
-              runningTask = tasks[waitingIDs.front()];
-              waitingIDs.pop_front();
-            }
-          }
-          break;
-        case roundrobin2: 
-          while (time > 0)
-          {
-            if(pTask == runningTask)
-            {
-              if(pTime < 2)
+              ull left = runningTask->TimeRemaining();
+              runningTask->Run(time);
+              if(time > left)
+                time -= left;
+              else time = 0;
+              if(runningTask->Status() == Task::done)
               {
-                int running = 2 - pTime;
-                if(time >= running)
+                completedIDs.push_back(runningTask->ID());
+                finishedIDs.push_back(runningTask->ID());
+                if(waitingIDs.size() > 0)
                 {
-                  time -= running;
-                  runningTask->Run(running);
-                  pTask = nullptr;
-                  pTime = 0;
+                  runningTask = tasks[waitingIDs.front()];
+                  waitingIDs.pop_front();
                 }
                 else
                 {
-                  pTime += time;
-                  runningTask->Run(time);
-                  time = 0;
+                  runningTask = nullptr;
+                  break;
+                }
+                
+              }
+            }
+            break;
+          case roundrobin2: 
+          {
+            while (time > 0)
+            {
+              if(pTask == runningTask)
+              {
+                if(pTime < 2)
+                {
+                  unsigned int running = 2 - pTime;
+                  if(time >= running)
+                  {
+                    time -= running;
+                    runningTask->Run(running);
+                    pTask = nullptr;
+                    pTime = 0;
+                  }
+                  else
+                  {
+                    pTime += time;
+                    runningTask->Run(time);
+                    time = 0;
+                  }
+                }
+                else
+                {
+                  pTask = nullptr;
+                  pTime = 0;
                 }
               }
               else
               {
-                pTask = nullptr;
-                pTime = 0;
+                pTask = runningTask;
               }
-            }
-            else
-            {
-              pTask = runningTask;
-            }
-            
-            if(runningTask->Status() == Task::done)
-            {
-              completedIDs.push_back(runningTask->ID());
-              finishedIDs.push_back(runningTask->ID());
-              runningTask = tasks[waitingIDs.front()];
-              waitingIDs.pop_front();
-            }
-            else if(pTask == nullptr)
-            {
-              runningTask->Block();
-              waitingIDs.push_back(runningTask->ID());
-              runningTask = tasks[waitingIDs.front()];
-              waitingIDs.pop_front();
-            }
-          }
-          break;
-        case shortestprocess: 
-          while(time > 0)
-          {
-            ull _id;
-            ull left = runningTask->TimeRemaining();
-            runningTask->Run(time);
-            if(time > left)
-              time -= left;
-            else time = 0;
-            if(runningTask->Status() == Task::done)
-            {
-              completedIDs.push_back(runningTask->ID());
-              finishedIDs.push_back(runningTask->ID());
-
-              _id = waitingIDs.front();
-              for (auto id : waitingIDs)
+              
+              if(runningTask->Status() == Task::done)
               {
-                if(tasks[_id]->ProcessTime() > tasks[id]->ProcessTime())
-                  _id = id;
+                completedIDs.push_back(runningTask->ID());
+                finishedIDs.push_back(runningTask->ID());
+                if(waitingIDs.size() > 0)
+                {
+                  runningTask = tasks[waitingIDs.front()];
+                  waitingIDs.pop_front();
+                }
+                else
+                {
+                  runningTask = nullptr;
+                  break;
+                }
               }
-              runningTask = tasks[_id];
-              waitingIDs.remove(_id);
+              else if(pTask == nullptr)
+              {
+                runningTask->Block();
+                waitingIDs.push_back(runningTask->ID());
+                runningTask = tasks[waitingIDs.front()];
+                waitingIDs.pop_front();
+              }
             }
+            break;
           }
-          break;
+          case shortestprocess: 
+          {
+            while(time > 0)
+            {
+              ull _id;
+              ull left = runningTask->TimeRemaining();
+              runningTask->Run(time);
+              if(time > left)
+                time -= left;
+              else time = 0;
+              if(runningTask->Status() == Task::done)
+              {
+                completedIDs.push_back(runningTask->ID());
+                finishedIDs.push_back(runningTask->ID());
+                if(waitingIDs.size() > 0)
+                {
+                  _id = waitingIDs.front();
+                  for (auto id : waitingIDs)
+                  {
+                    if(tasks[_id]->ProcessTime() > tasks[id]->ProcessTime())
+                      _id = id;
+                  }
+                  runningTask = tasks[_id];
+                  waitingIDs.remove(_id);
+                }
+                else
+                {
+                  runningTask = nullptr;
+                  break;
+                }
+              }
+            }
+            break;
+          }
         }
         Unlock();
         return completedIDs;
