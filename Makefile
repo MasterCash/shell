@@ -8,7 +8,7 @@ HEADS = $(wildcard *.hpp)
 OBJECTS = $(SOURCES:%.cpp=%.o)
 
 CPP = g++
-CFLAGS = -Wall --pedantic-errors -g -std=c++11
+CFLAGS = -Wall --pedantic-errors -g -std=c++11 -pthread
 
 program: ${OBJECTS}
 	-@${CPP} ${CFLAGS} ${OBJECTS} -o ${EXE}
@@ -21,7 +21,9 @@ program: ${OBJECTS}
 clean:
 	-@rm -f ${EXE}
 	-@rm -f ${OBJECTS}
-run:
+.PHONY: run
+run: program
 	-@./${EXE}
-val:
+.PHONY: val
+val: program
 	-@valgrind ./${EXE}
