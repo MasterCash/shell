@@ -1,3 +1,5 @@
+#ifndef COMPUTER_H
+#define COMPUTER_H
 #include <vector>
 #include <iostream>
 #include "node.h"
@@ -19,8 +21,6 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#ifndef COMPUTER_H
-#define COMPUTER_H
 namespace Shell
 {
   // struct for easy task storage
@@ -226,6 +226,8 @@ namespace Shell
        */
       bool connected;
 
+      bool running;
+
     // Public functions
     public:
 
@@ -262,6 +264,7 @@ namespace Shell
       // Main constructor - does the heavy lifting
       Computer()
       {
+        running = true;
         // No user to start off with, need to login.
         curUser = nullptr;
         // note there is no connection
@@ -308,9 +311,23 @@ namespace Shell
         // login
         login();
         // Start the console.
+        running = true;
         console();
+        running = false;
       }
       
+      void threadUpdate()
+      {
+        while(running)
+        {
+          for(auto threadObj : threads)
+          {
+            threadObj.second->Update(1);
+          }
+          sleep(1);
+        }
+      }
+      bool Running() const { return running; }
     // Private functions
     private:
       // Login function. returns true if user and password is valid
@@ -322,11 +339,6 @@ namespace Shell
         // if logged in or not
         bool loggedIn = false;
         curUser = nullptr;
-        if(!std::cin)
-        {
-          std::cout << "ISSUE!" << std::endl;
-          throw "broken whatttt?";
-        }
         // Login loop
         do
         {
@@ -955,9 +967,16 @@ namespace Shell
         // Handles groups command
         else if (command == "groups")
         {
-          if(args.size() != 1)
+          if(args.size() > 1)
           {
             std::cout << "groups: Invalid number of arguments\n";
+          }
+          else if(args.size() == 0)
+          {
+            std::cout << curUser->Username() << ": ";
+            for(std::string group : curUser->Groups())
+              std::cout << group << " ";
+            std::cout << std::endl;
           }
           else if(users.find(args[0]) == users.end())
           {
@@ -1131,13 +1150,27 @@ namespace Shell
         {
           if(args.size() < 1)
           {
-            std::cout << "thread: missing argument" << std::endl;  
+            std::cout << " ID |           type         | num tasks | tasks waiting | tasks finished | running |" << std::endl;
+            for(auto threadPair : threads)
+            {
+              std::string type = Thread::TypeName[threadPair.second->Type()];
+              std::string spaces = "";
+              int count = Thread::TypeName[2].size() - type.size();
+              for(int i = 0; i < count; i++)
+                spaces += " ";
+              std::cout 
+                << " " << threadPair.second->ID() << "    " << type << spaces << "     "
+                << threadPair.second->NumTasks() << "           " << threadPair.second->NumWaitingTasks() 
+                << "               " << threadPair.second->NumFinishedTasks() 
+                << "              " 
+                << (threadPair.second->GetRunningTask() == nullptr ? "no" : "yes") << std::endl; 
+            }
           }
           else
           {
             if(args[0] == "list")
             {
-              std::cout << " ID |           type         | num tasks | " << std::endl;
+              std::cout << " ID |           type         | num tasks | tasks waiting | tasks finished | running |" << std::endl;
               for(auto threadPair : threads)
               {
                 std::string type = Thread::TypeName[threadPair.second->Type()];
@@ -1145,7 +1178,12 @@ namespace Shell
                 int count = Thread::TypeName[2].size() - type.size();
                 for(int i = 0; i < count; i++)
                   spaces += " ";
-                std::cout << " " << threadPair.second->ID() << "    " << type << spaces << "     "<< threadPair.second->GetTasks().size() << std::endl; 
+                std::cout 
+                  << " " << threadPair.second->ID() << "    " << type << spaces << "     "
+                  << threadPair.second->NumTasks() << "           " << threadPair.second->NumWaitingTasks() 
+                  << "               " << threadPair.second->NumFinishedTasks() 
+                  << "              " 
+                  << (threadPair.second->GetRunningTask() == nullptr ? "no" : "yes") << std::endl; 
               }
             }
             else if(args.size() < 2)
@@ -1154,7 +1192,7 @@ namespace Shell
             }
             else
             {
-              if(args[0] == "create")
+              if(args[0] == "create" || args[0] == "c")
               {
               
                 try
@@ -1171,15 +1209,23 @@ namespace Shell
                 }
                 
               }
-              else if(args[0] == "delete")
+              else if(args[0] == "delete" || args[0] == "d")
               {
                 try
                 {
                   int id = std::stoi(args[1]);
+                  
                   if(threads.find(id) == threads.end())
                     throw std::exception();
-                  delete threads[id];
-                  threads.erase(id);
+                  if(id == 0)
+                  {
+                    std::cout << "thread: cannot delete primary thread\n";
+                  }
+                  else
+                  {
+                    delete threads[id];
+                    threads.erase(id);
+                  }
                 }
                 catch(const std::exception)
                 {
@@ -1203,6 +1249,7 @@ namespace Shell
           {
             std::cout << "Usage: help cmd : prints help for a given command\n";
             std::cout << "Usage: help -a : Prints help for all commands\n";
+            std::cout << "Usage: <executable> [thread id] : will execute a file on a given thread id, default is thread 0 if none given\n";
           }
           else if(args[0] == "-a")
           {
@@ -1299,9 +1346,9 @@ namespace Shell
           }
           else if(args[0] == "thread")
           {
-            std::cout << "Usage: thread list : lists all current threads available to the computer\n";
-            std::cout << "Usage: thread create <type id> : creates a thread with given scheduling type\n";
-            std::cout << "Usage: thread delete <thread id> : killed the thread with the given id\n";
+            std::cout << "Usage: thread [list] : lists all current threads available to the computer\n";
+            std::cout << "Usage: thread c[reate] <type id> : creates a thread with given scheduling type\n";
+            std::cout << "Usage: thread d[elete] <thread id> : killed the thread with the given id\n";
           }
           else 
           {
@@ -1320,7 +1367,34 @@ namespace Shell
           else if(!Node::HasPermissions(curUser, file, Execute))
             std::cout << command << ": Permission Denied\n";
           else
-            std::cout << file->Name() << " executed\n";
+          {
+            if(args.size() < 1)
+            {
+              threads[0]->AddTask(new Task(file->GetTask()));
+              std::cout << file->Name() << " executed\n";
+            }
+            else
+            {
+              try
+              {
+                ull id = stoi(args[0]);
+                auto itemIt = threads.find(id);
+                if(itemIt == threads.end())
+                {
+                  std::cout << command << ": invalid thread ID '" << args[0] << "'\n";
+                }
+                else
+                {
+                  itemIt->second->AddTask(new Task(file->GetTask()));
+                  std::cout << file->Name() << " executed\n";
+                }
+              }
+              catch(const std::exception& e)
+              {
+                std::cout << command << ": invalid thread ID '" << args[0] << "'\n";
+              }
+            }
+          }
         }
         return true;
       }
