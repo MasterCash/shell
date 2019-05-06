@@ -21,7 +21,7 @@ namespace Dispay
     int id;
     int threadId;
     int memory;
-    int cpu;
+    // int cpu;
     ull time;
   };
 
@@ -35,28 +35,28 @@ namespace Dispay
       std::vector<process> running;
       // track the machine info.
       int memory;
-      int cpu;
+      // int cpu;
       // stores the size of the total display.
       int screenSize;
       int screenHight;
       // stores the size of the sub-parts of the display.
       int memorySize;
-      int cpuSize;
+      // int cpuSize;
       int idSize;
       int threadIdSize;
       int nameSize;
-      int cpuUSize;
+      // int cpuUSize;
       int memoryUSize;
       int timeSize;
       // stores the minimum size each part can be.
-      const int MINSIZE = 60;
+      const int MINSIZE = 50;
       const int MINHIGHT = 3;
       const int MINMEMORYSIZE = 6;
-      const int MINCPUSIZE = 5;
+      // const int MINCPUSIZE = 5;
       const int MINIDSIZE = 3;
       const int MINTHREADIDSIZE = 3;
       const int MINNAMESIZE = 12;
-      const int MINCPUUSIZE = 5;
+      // const int MINCPUUSIZE = 5;
       const int MINMEMORYUSIZE = 6;
       const int MINTIMESIZE = 9;
 
@@ -67,26 +67,26 @@ namespace Dispay
       {
         // set all the default values
         memory = 0;
-        cpu = 0;
+        // cpu = 0;
         screenSize = MINSIZE;
         // higher base hight for simplicity sake.
         screenHight = MINHIGHT + 20;
         memorySize = MINMEMORYSIZE;
-        cpuSize = MINCPUSIZE;
+        // cpuSize = MINCPUSIZE;
         idSize = MINIDSIZE;
         threadIdSize = MINTHREADIDSIZE;
         nameSize = MINNAMESIZE;
-        cpuUSize = MINCPUUSIZE;
+        // cpuUSize = MINCPUUSIZE;
         memoryUSize = MINMEMORYUSIZE;
         timeSize = MINTIMESIZE;
       }
 
       // argumented constructor
-      TaskMonitor(int mem, int cp, int size, int hight)
+      TaskMonitor(int mem, int size, int hight)
       {
         // set the memory and cpu
         memory = mem;
-        cpu = cp;
+        // cpu = cp;
         // validate the size and hight. Set them with the validated results.
         if (size < MINSIZE)
         {
@@ -104,32 +104,28 @@ namespace Dispay
         screenHight = hight;
         // set up the size of the parts.
         memorySize = MINMEMORYSIZE;
-        cpuSize = MINCPUSIZE;
+        // cpuSize = MINCPUSIZE;
         idSize = MINIDSIZE;
         threadIdSize = MINTHREADIDSIZE;
         nameSize = MINNAMESIZE;
-        cpuUSize = MINCPUUSIZE;
+        // cpuUSize = MINCPUUSIZE;
         memoryUSize = MINMEMORYUSIZE;
         timeSize = MINTIMESIZE;
         // increase the size of the parts as much as possible, and evenly.
         for (int i = 0; i < screenSize - MINSIZE; i++) {
-          if (i % 9 == 0) {
-            cpuSize++;
-          } else if (i % 9 == 1) {
+          if (i % 7 == 0) {
             idSize++;
-          } else if (i % 9 == 2) {
+          } else if (i % 7 == 1) {
             threadIdSize++;
-          } else if (i % 9 == 3) {
+          } else if (i % 7 == 2) {
             nameSize++;
-          } else if (i % 9 == 4) {
+          } else if (i % 7 == 3) {
             nameSize++;
-          } else if (i % 9 == 5) {
-            cpuUSize++;
-          } else if (i % 9 == 6) {
+          } else if (i % 7 == 4) {
             memoryUSize++;
-          } else if (i % 9 == 7) {
+          } else if (i % 7 == 5) {
             timeSize++;
-          } else if (i % 9 == 8) {
+          } else if (i % 7 == 6) {
             memorySize++;
           }
         }
@@ -139,11 +135,11 @@ namespace Dispay
       void print()
       {
         // count the used cpu and memory.
-        int usedCPU = 0;
+        // int usedCPU = 0;
         int usedMem = 0;
         for (auto it = std::begin(running); it!=std::end(running); ++it) {
           usedMem += (*it).memory;
-          usedCPU += (*it).cpu;
+          // usedCPU += (*it).cpu;
         }
         // helper int for printing buffering.
         int remaining;
@@ -158,7 +154,7 @@ namespace Dispay
         // make a empty process for dealing with empty spots.
         process empty;
         empty.id = -1;
-        empty.cpu = 0;
+        // empty.cpu = 0;
         empty.memory = 0;
         empty.name = "";
         empty.threadId = 0;
@@ -172,6 +168,7 @@ namespace Dispay
           if (i == 0)
           {
             // print out CPU header.
+            /*
             remaining = cpuSize - MINCPUSIZE;
             for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
@@ -184,7 +181,7 @@ namespace Dispay
               out << " ";
             }
             // print divider
-            out << "|";
+            out << "|";*/
             // print out memory header
             remaining = memorySize - MINMEMORYSIZE;
             for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
@@ -198,7 +195,7 @@ namespace Dispay
               out << " ";
             }
             // print section divider
-            out << "|#|";
+            out << "|###|";
             // print out the id of the process.
             remaining = idSize - MINIDSIZE;
             for (int w = 0; w < (remaining / 2); w++)
@@ -242,7 +239,7 @@ namespace Dispay
             // print out divider
             out << "|";
             // print out cpu usage header.
-            remaining = cpuUSize - MINCPUUSIZE;
+            /*remaining = cpuUSize - MINCPUUSIZE;
             for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
@@ -254,7 +251,7 @@ namespace Dispay
               out << " ";
             }
             // print out divider
-            out << "|";
+            out << "|";*/
             // print out memory header
             remaining = memoryUSize - MINMEMORYUSIZE;
             for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
@@ -292,9 +289,9 @@ namespace Dispay
             else
             {
               display = empty;
-            }
+            }/*
             for (int w = 0; w < cpuSize; w++) {
-              if (usedCPU >= (static_cast<double>(cpu) / (screenHight - 1) * (screenHight - i)))
+              if (usedCPU != 0 && usedCPU >= (static_cast<double>(cpu) / (screenHight - 1) * (screenHight - i)))
               {
                 out << "#";
               }
@@ -303,10 +300,10 @@ namespace Dispay
                 out << " ";
               }
             }
-            out << "|";
+            out << "|";*/
             for (int w = 0; w < memorySize; w++)
             {
-              if (usedMem >= (static_cast<double>(memory) / (screenHight - 1) * (screenHight - i)))
+              if (usedMem != 0 && usedMem >= (static_cast<double>(memory) / (screenHight - 1) * (screenHight - i)))
               {
                 out << "#";
               }
@@ -315,7 +312,7 @@ namespace Dispay
                 out << " ";
               }
             }
-            out << "|#|";
+            out << "|###|";
             conv = ((display.id == -1) ? "-" : std::to_string(display.id));
             for (int w = conv.size(); w < idSize; w++)
             {
@@ -345,7 +342,7 @@ namespace Dispay
               }
               out << display.name << " ";
             }
-            out << "|";
+            out << "|";/*
             double precent = (static_cast<double>(display.cpu) / cpu * 100);
             conv = std::to_string(static_cast<int>(precent));
             remaining = cpuUSize - conv.size() - 1;
@@ -359,8 +356,8 @@ namespace Dispay
             {
               out << " ";
             }
-            out << "|";
-            precent = (static_cast<double>(display.memory) / memory * 100);
+            out << "|";*/
+            double precent = (static_cast<double>(display.memory) / memory * 100);
             conv = std::to_string(static_cast<int>(precent));
             remaining = memoryUSize - conv.size() - 1;
             for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
@@ -406,7 +403,7 @@ namespace Dispay
         std::cout << out.str() << std::endl;
       }
 
-      void addProcess(std::string name, int id, int threadId, int memory, int cpu, ull time) {
+      void addProcess(std::string name, int id, int threadId, int memory, ull time) {
         for (auto it = std::begin(running); it!=std::end(running); ++it) {
           if ((*it).id == id) {
             std::cout << "process already exists";
@@ -420,14 +417,14 @@ namespace Dispay
         newProcess.id = id;
         newProcess.threadId = threadId;
         newProcess.memory = memory;
-        newProcess.cpu = cpu;
+        // newProcess.cpu = cpu;
         newProcess.time = time;
         running.push_back(newProcess);
 
         return;
       }
 
-      void updateProcess(int id, int memory, int cpu, ull time) {
+      void updateProcess(int id, int memory, ull time) {
         for (auto it = std::begin(running); it!=std::end(running); ++it) {
           if ((*it).id == id) {
             if (time <= 0) {
@@ -435,7 +432,7 @@ namespace Dispay
               break;
             }
             (*it).memory = memory;
-            (*it).cpu = cpu;
+            // (*it).cpu = cpu;
             (*it).time = time;
             break;
           }
@@ -460,31 +457,27 @@ namespace Dispay
         screenSize = width == -1 ? screenSize : width;
         screenHight = hight == -1 ? screenHight : hight;
         memorySize = MINMEMORYSIZE;
-        cpuSize = MINCPUSIZE;
+        // cpuSize = MINCPUSIZE;
         idSize = MINIDSIZE;
         threadIdSize = MINTHREADIDSIZE;
         nameSize = MINNAMESIZE;
-        cpuUSize = MINCPUUSIZE;
+        // cpuUSize = MINCPUUSIZE;
         memoryUSize = MINMEMORYUSIZE;
         timeSize = MINTIMESIZE;
         for (int i = 0; i < screenSize - MINSIZE; i++) {
-          if (i % 9 == 0) {
-            cpuSize++;
-          } else if (i % 9 == 1) {
+          if (i % 7 == 0) {
             idSize++;
-          } else if (i % 9 == 2) {
+          } else if (i % 7 == 1) {
             threadIdSize++;
-          } else if (i % 9 == 3) {
+          } else if (i % 7 == 2) {
             nameSize++;
-          } else if (i % 9 == 4) {
+          } else if (i % 7 == 3) {
             nameSize++;
-          } else if (i % 9 == 5) {
-            cpuUSize++;
-          } else if (i % 9 == 6) {
+          } else if (i % 7 == 4) {
             memoryUSize++;
-          } else if (i % 9 == 7) {
+          } else if (i % 7 == 5) {
             timeSize++;
-          } else if (i % 9 == 8) {
+          } else if (i % 7 == 6) {
             memorySize++;
           }
         }
@@ -492,8 +485,8 @@ namespace Dispay
         //          << nameSize << "|" << cpuUSize << "|" << memoryUSize << "|" << timeSize << std::endl;
       }
 
-      void setComp(int cp, int mem) {
-        cpu = cp;
+      void setComp(int mem) {
+        // cpu = cp;
         memory = mem;
       }
     // Private functions

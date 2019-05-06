@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 {
   // print out to explain the program
   std::cout << "welcome to the task monitor! To start, enter anything!" << std::endl;
-  std::cout << "If you wish to exit the program, simply enter the letter q after it starts." << endl;
+  std::cout << "If you wish to exit the program, simply enter the letter q after it starts." << std::endl;
   // make sure the user wants it to start
   std::string junk;
   std::cin >> junk;
@@ -83,16 +83,16 @@ int main(int argc, char *argv[])
   // start the quitting thread.
   std::thread (check, std::ref(stop)).detach();
   // set up the computer and enter in fake processes.
-  monitor.setComp(100, 100);
-  monitor.addProcess("TEST1"      , 1, 0, 10, 10, 100);
-  monitor.addProcess("TEST2"      , 2, 1, 0, 2, 59);
-  monitor.addProcess("TESTING3"   , 3, 1, 2, 10, 120);
-  monitor.addProcess("TESTING4"   , 4, 1, 6, 10, 1800);
-  monitor.addProcess("TESTING5"   , 5, 2, 0, 0, 18000);
-  monitor.addProcess("TESTING678" , 6, 2, 0, 9, 2);
-  monitor.addProcess("TESTING700" , 7, 1, 4, 0, 1);
-  monitor.addProcess("TESTING800" , 7, 2, 4, 0, 3600);
-  monitor.addProcess("TESTING9001", 8, 1, 4, 4, 600);
+  monitor.setComp(100);
+  monitor.addProcess("TEST1"      , 1, 0, 10, 100);
+  monitor.addProcess("TEST2"      , 2, 1, 0, 59);
+  monitor.addProcess("TESTING3"   , 3, 1, 2, 120);
+  monitor.addProcess("TESTING4"   , 4, 1, 6, 1800);
+  monitor.addProcess("TESTING5"   , 5, 2, 0, 18000);
+  monitor.addProcess("TESTING678" , 6, 2, 0, 2);
+  monitor.addProcess("TESTING700" , 7, 1, 4, 1);
+  monitor.addProcess("TESTING800" , 7, 2, 4, 3600);
+  monitor.addProcess("TESTING9001", 8, 1, 4, 600);
   // print the stuff.
   monitor.print();
   // continue printing the stuff after short breaks until it is told to stop.
