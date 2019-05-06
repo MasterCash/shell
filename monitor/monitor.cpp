@@ -10,16 +10,167 @@
 #include <unistd.h>
 #include "taskMonitor.h"
 
+void error(const char *msg)
+{
+  perror(msg);
+  // exit(1);
+}
+
 // create a mutlitask thread that just checks for the quit command
-void static check(bool &stop) {
+void static check(bool &stop)
+{
   std::string input;
-  while(true) {
+  while(true)
+  {
     std::cin >> input;
-    if (input[0] == 'q' || input[0] == 'Q') {
+    if (input[0] == 'q' || input[0] == 'Q')
+    {
       stop = true;
       break;
     }
   }
+}
+
+void static talker(int portno, bool &stop, Display::TaskMonitor &monitor)
+{
+  int sockfd, newsockfd;
+  socklen_t clilen;
+  char buffer[256];
+  struct sockaddr_in serv_addr, cli_addr;
+  int n;
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) 
+    error("ERROR opening socket");
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr.s_addr = INADDR_ANY;
+  serv_addr.sin_port = htons(portno);
+  if (bind(sockfd, (struct sockaddr *) &serv_addr,
+          sizeof(serv_addr)) < 0) 
+          error("ERROR on binding");
+  listen(sockfd,5);
+  clilen = sizeof(cli_addr);
+  newsockfd = accept(sockfd, 
+              (struct sockaddr *) &cli_addr, 
+              &clilen);
+  if (newsockfd < 0) 
+    error("ERROR on accept");
+  while(!stop)
+  {
+    bzero(buffer,256);
+    n = read(newsockfd,buffer,255);
+    if (n < 0) error("ERROR reading from socket");
+    printf("Here is the message: %s\n",buffer);
+    if (buffer[0] == 'n')
+    {
+      // store the attributes of the new process.
+      std::string name = "";
+      int id = 0;
+      int threadId = 0;
+      int memory = 0;
+      ull time = 0;
+      // store the location that is being processed, and the current input.
+      int loc = 1;
+      int num = 0;
+      // store which input we are on.
+      while(buffer[loc] != '|')
+      {
+        loc++;
+        if (buffer[loc] == '-')
+        {
+          num++;
+          continue;
+        }
+        if (num == 0)
+        {
+          id *= 10;
+          id += buffer[loc] - '0';
+        }
+        else if (num == 1)
+        {
+          name += buffer[loc];
+        }
+        else if (num == 2)
+        {
+          threadId *= 10;
+          threadId += buffer[loc] - '0';
+        }
+        else if (num == 3)
+        {
+          memory *= 10;
+          memory += buffer[loc] - '0';
+        }
+        else if (num == 4)
+        {
+          time *= 10;
+          time += buffer[loc] - '0';
+        }
+        else
+        {
+          break;
+        }
+      }
+      // add the process to the to the task manager
+      monitor.addProcess(name, id, threadId, memory, time);
+      n = write(newsockfd,"I got your message",18);
+    }
+    else if (buffer[0] == 'u')
+    {
+      // store the attributes of the new process.
+      int id = 0;
+      int memory = 0;
+      ull time = 0;
+      // store the location that is being processed, and the current input.
+      int loc = 1;
+      int num = 0;
+      // store which input we are on.
+      while(buffer[loc] != '|')
+      {
+        loc++;
+        if (buffer[loc] == '-')
+        {
+          num++;
+          continue;
+        }
+        if (num == 0)
+        {
+          id *= 10;
+          id += buffer[loc] - '0';
+        }
+        else if (num == 1)
+        {
+          memory *= 10;
+          memory += buffer[loc] - '0';
+        }
+        else if (num == 2)
+        {
+          time *= 10;
+          time += buffer[loc] - '0';
+        }
+        else
+        {
+          break;
+        }
+      }
+      // updates the process
+      monitor.updateProcess(id, memory, time);
+      n = write(newsockfd,"I got your message",18);
+    }
+    else if (buffer[0] == 'q')
+    {
+      close(newsockfd);
+      close(sockfd);
+      n = write(newsockfd,"quitting....",18);
+      return;
+    }
+    else
+    {
+      n = write(newsockfd,"Improper message",18);
+    }
+  }
+  if (n < 0) error("ERROR writing to socket");
+  close(newsockfd);
+  close(sockfd);
 }
 
 int main(int argc, char *argv[])
@@ -37,38 +188,45 @@ int main(int argc, char *argv[])
   // track if it needs to stop
   bool stop = false;
   // checks for the arguments -set-size=## and -set-hight=##
-  if (argc > 1) {
+  if (argc > 1)
+  {
     std::string argument;
     // iterates over the arguments
-    for (int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++)
+    {
       //std::cout << argv[i] << "|" << std::endl;
       argument = argv[i];
       // make sure the argument is of a realistic size.
-      if (argument.size() < 11) {
+      if (argument.size() < 11)
+      {
         // tell them what they did wrong.
         std::cout << "improper command formating. Commands are \'-set-size=#\' and \'-set-hight=#\'" << std::endl;
         break;
       }
       // make sure they are designating a -
-      if (argument[0] != '-') {
+      if (argument[0] != '-')
+      {
         // tell them what they did wrong.
         std::cout << "improper format, arguments must start with -" << std::endl;
         break;
       }
       // make sure they are using a existing prefix
-      if (argument.substr(1, 4).compare("set-") != 0) {
+      if (argument.substr(1, 4).compare("set-") != 0)
+      {
         // tell them what they did wrong.
         std::cout << "only \"set-\" commands are supported" << std::endl;
         break;
       }
       // make sure they are setting a existing setting.
-      if (argument.substr(5, 5).compare("size=") == 0) {
+      if (argument.substr(5, 5).compare("size=") == 0)
+      {
         //std::cout << "set1 - " << stoi(argument.substr(10)) << "|" << std::endl;
         // set it.
         size = stoi(argument.substr(10));
       }
       // make sure they are setting a existing setting.
-      if (argument.substr(5, 6).compare("hight=") == 0) {
+      if (argument.substr(5, 6).compare("hight=") == 0)
+      {
         //std::cout << "set2 - " << stoi(argument.substr(11)) << "|"  << std::endl;
         // set it.
         hight = stoi(argument.substr(11));
@@ -77,11 +235,13 @@ int main(int argc, char *argv[])
   }
   //usleep(5000000);
   // set the size if anything was enterd.
-  if (size != -1 || hight != -1) {
+  if (size != -1 || hight != -1)
+  {
     monitor.changeSize(size, hight);
   }
   // start the quitting thread.
   std::thread (check, std::ref(stop)).detach();
+  std::thread (talker, 51717, std::ref(stop), std::ref(monitor)).detach();
   // set up the computer and enter in fake processes.
   monitor.setComp(100);
   monitor.addProcess("TEST1"      , 1, 0, 10, 100);
@@ -96,8 +256,10 @@ int main(int argc, char *argv[])
   // print the stuff.
   monitor.print();
   // continue printing the stuff after short breaks until it is told to stop.
-  while (true) {
-    if (stop) {
+  while (true)
+  {
+    if (stop)
+    {
       break;
     }
     usleep(500000);
