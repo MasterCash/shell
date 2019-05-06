@@ -42,128 +42,6 @@ namespace Shell
     // exit(0); 
   }
 
-  // handles the client side server
-  // @input running: should be a pointer to the running variable of the computer.
-  // @input conected: should be a pointer to the connected variable of the computer.
-  // @input tasks: should be a pointer to the proccesses vector.
-  // @input update: should be a pointer to the update queue.
-  void static client(bool &running, bool &connected, std::vector<process> &tasks, std::queue<process> &update)
-  {
-    int sockfd, portno = 51717, n, err = 0;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-
-    char buffer[256];
-    while (running)
-    {
-      sockfd = socket(AF_INET, SOCK_STREAM, 0);
-      while (sockfd < 0) {
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-      }
-      server = gethostbyname("localhost");
-      while (server == NULL)
-      {
-        server = gethostbyname("localhost");
-        usleep(100);
-      }
-      bzero((char *) &serv_addr, sizeof(serv_addr));
-      serv_addr.sin_family = AF_INET;
-      bcopy((char *)server->h_addr, 
-          (char *)&serv_addr.sin_addr.s_addr,
-          server->h_length);
-      serv_addr.sin_port = htons(portno);
-      try
-      {
-        while (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) >= 0)
-        {
-          continue;
-        }
-        while (true)
-        {
-          if (connected && update.size() > 0)
-          {
-            while (update.size() > 0)
-            {
-              process up = update.front();
-              update.pop();
-              std::string input = "u" + std::to_string(up.id) + "-" +
-                                std::to_string(up.memory) + "-" +
-                                std::to_string((up.time > 999999) ? 999999 : up.time);
-              bzero(buffer,256);
-              for (unsigned int i = 0; i < input.size(); i++)
-              {
-                buffer[i] = input[i];
-              }
-              n = -1;
-              while(n < 0)
-              {
-                n = write(sockfd,buffer,strlen(buffer));
-                if (n < 0)
-                {
-                  error("ERROR writing to socket");
-                  err++;
-                  if (err > 10)
-                  {
-                    throw(1);
-                  }
-                }
-
-              }
-              bzero(buffer,256);
-              n = read(sockfd,buffer,255);
-              if (n < 0) 
-                error("ERROR reading from socket");
-            }
-          }
-          else
-          {
-            for (auto it = std::begin(tasks); it!=std::end(tasks); ++it)
-            {
-              std::string input = "n" + std::to_string((*it).id) + "-" + (*it).name + "-" +
-                                std::to_string((*it).threadId) + "-" + std::to_string((*it).memory)
-                                + "-" + std::to_string(((*it).time > 999999) ? 999999 : (*it).time);
-              bzero(buffer,256);
-              for (unsigned int i = 0; i < input.size(); i++)
-              {
-                buffer[i] = input[i];
-              }
-              n = -1;
-              while(n < 0)
-              {
-                n = write(sockfd,buffer,strlen(buffer));
-                if (n < 0)
-                {
-                  error("ERROR writing to socket");
-                  err++;
-                  if (err > 10)
-                  {
-                    throw(1);
-                  }
-                }
-
-              }
-              bzero(buffer,256);
-              n = read(sockfd,buffer,255);
-              if (n < 0) 
-                error("ERROR reading from socket");
-            }
-
-            connected = true;
-          }
-        }
-      }
-      catch(int e)
-      {
-        std::cout << "disconnected" << '\n';
-      }
-    }
-    
-    printf("%s\n",buffer);
-    close(sockfd);
-  
-    return;
-  }
-
   const std::vector<std::string> CMDS = 
   {
     "ls",
@@ -303,6 +181,7 @@ namespace Shell
         root->AddToGroup("wheel");
         Thread* thread = new Thread(10000000, Thread::fifo);
         threads.emplace(thread->ID(), thread);
+        
       }
 
       // Running the computer. Handles all operations from here.
@@ -312,8 +191,10 @@ namespace Shell
         login();
         // Start the console.
         running = true;
+        std::thread t(&Computer::client, std::ref(*this));
         console();
         running = false;
+        t.join();
       }
       
       void threadUpdate()
@@ -322,7 +203,9 @@ namespace Shell
         {
           for(auto threadObj : threads)
           {
-            threadObj.second->Update(1);
+            auto l = threadObj.second->Update(1);
+            for(auto item : l)
+              updateTask(item, threadObj.second->GetTask(item)->MemoryUsage(), threadObj.second->GetTask(item)->TimeRemaining());
           }
           sleep(1);
         }
@@ -330,6 +213,129 @@ namespace Shell
       bool Running() const { return running; }
     // Private functions
     private:
+    // handles the client side server
+    // @input running: should be a pointer to the running variable of the computer.
+    // @input conected: should be a pointer to the connected variable of the computer.
+    // @input tasks: should be a pointer to the proccesses vector.
+    // @input update: should be a pointer to the update queue.
+    void client()
+    {
+      int sockfd, portno = 41717, n, err = 0;
+      struct sockaddr_in serv_addr;
+      struct hostent *server;
+
+      char buffer[256];
+      while (running)
+      {
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        while (sockfd < 0) {
+          sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        }
+        server = gethostbyname("localhost");
+        while (server == NULL)
+        {
+          server = gethostbyname("localhost");
+          usleep(100);
+        }
+        bzero((char *) &serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        bcopy((char *)server->h_addr, 
+            (char *)&serv_addr.sin_addr.s_addr,
+            server->h_length);
+        serv_addr.sin_port = htons(portno);
+        try
+        {
+          while (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) >= 0)
+          {
+            continue;
+          }
+          while (true)
+          {
+            if (connected && processesToUpdate.size() > 0)
+            {
+              while (processesToUpdate.size() > 0)
+              {
+                process up = processesToUpdate.front();
+                processesToUpdate.pop();
+                std::string input = "u" + std::to_string(up.id) + "-" +
+                                  std::to_string(up.memory) + "-" +
+                                  std::to_string((up.time > 999999) ? 999999 : up.time);
+                bzero(buffer,256);
+                for (unsigned int i = 0; i < input.size(); i++)
+                {
+                  buffer[i] = input[i];
+                }
+                n = -1;
+                while(n < 0)
+                {
+                  n = write(sockfd,buffer,strlen(buffer));
+                  if (n < 0)
+                  {
+                    error("ERROR writing to socket");
+                    err++;
+                    if (err > 10)
+                    {
+                      throw(1);
+                    }
+                  }
+
+                }
+                bzero(buffer,256);
+                n = read(sockfd,buffer,255);
+                if (n < 0) 
+                  error("ERROR reading from socket");
+              }
+            }
+            else
+            {
+              for (auto it = processes.begin(); it != processes.end(); ++it)
+              {
+                std::string input = "n" + std::to_string((*it).id) + "-" + (*it).name + "-" +
+                                  std::to_string((*it).threadId) + "-" + std::to_string((*it).memory)
+                                  + "-" + std::to_string(((*it).time > 999999) ? 999999 : (*it).time);
+                bzero(buffer,256);
+                for (unsigned int i = 0; i < input.size(); i++)
+                {
+                  buffer[i] = input[i];
+                }
+                n = -1;
+                while(n < 0)
+                {
+                  n = write(sockfd,buffer,strlen(buffer));
+                  if (n < 0)
+                  {
+                    error("ERROR writing to socket");
+                    err++;
+                    if (err > 10)
+                    {
+                      throw(1);
+                    }
+                  }
+
+                }
+                bzero(buffer,256);
+                n = read(sockfd,buffer,255);
+                if (n < 0) 
+                  error("ERROR reading from socket");
+              }
+
+              connected = true;
+            }
+          }
+        }
+        catch(int e)
+        {
+          std::cout << "disconnected" << '\n';
+        }
+      }
+      
+      printf("%s\n",buffer);
+      close(sockfd);
+    
+      return;
+    }
+
+
       // Login function. returns true if user and password is valid
       // false otherwise
       void login()
@@ -1370,7 +1376,9 @@ namespace Shell
           {
             if(args.size() < 1)
             {
-              threads[0]->AddTask(new Task(file->GetTask()));
+              Task* t = new Task(file->GetTask());
+              threads[0]->AddTask(t);
+              newTask(t->Name(), t->ID(), 0, t->MemoryUsage(), t->TimeRemaining());
               std::cout << file->Name() << " executed\n";
             }
             else
@@ -1385,7 +1393,9 @@ namespace Shell
                 }
                 else
                 {
-                  itemIt->second->AddTask(new Task(file->GetTask()));
+                  Task* t = new Task(file->GetTask());
+                  itemIt->second->AddTask(t);
+                  newTask(t->Name(), t->ID(), 0, t->MemoryUsage(), t->TimeRemaining());
                   std::cout << file->Name() << " executed\n";
                 }
               }
