@@ -13,7 +13,7 @@
 #ifndef TASKMONITOR_H
 #define TASKMONITOR_H
 
-namespace Dispay
+namespace Display
 {
   // create a struct to store 
   struct process {

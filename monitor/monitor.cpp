@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
   std::string junk;
   std::cin >> junk;
   //std::cout << argc << std::endl;
-  Dispay::TaskMonitor monitor;
+  Display::TaskMonitor monitor;
   int size = -1;
   int hight = -1;
   // track if it needs to stop
