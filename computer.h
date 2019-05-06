@@ -77,6 +77,7 @@ namespace Shell
         computerName = name;
         Computer();
       }
+
       // Deconstructor, make sure we don't have memory leaks :)
       ~Computer()
       {
@@ -98,6 +99,7 @@ namespace Shell
         curUser = nullptr;
         root = nullptr;
       }
+
       // Main constructor - does the heavy lifting
       Computer()
       {
@@ -239,6 +241,7 @@ namespace Shell
           looping = parser(input);
         }
       }
+
       // Parses input. returns true if the console should continue.
       bool parser(std::string input)
       {
@@ -543,7 +546,7 @@ namespace Shell
             }
           }
         }
-        // Handle chmod command
+        // Handles chmod command
         else if(command == "chmod")
         {
           // int for conversion
@@ -618,6 +621,7 @@ namespace Shell
             }
           }
         }
+        // Handles groupadd command
         else if (command == "groupadd")
         {
           // wrong num args
@@ -635,6 +639,7 @@ namespace Shell
               groups.insert(arg);
           }
         }
+        // Handles usermod command
         else if (command == "usermod")
         {
           if(args.size() < 3)
@@ -677,6 +682,7 @@ namespace Shell
             }
           }
         }
+        // Handles useradd command
         else if (command == "useradd")
         {
           User* usr;
@@ -739,6 +745,7 @@ namespace Shell
           }
           
         }
+        // Handles userdel command
         else if (command == "userdel")
         {
           // Invalidate
@@ -794,6 +801,7 @@ namespace Shell
             delete usr;
           }
         }
+        // Handles groups command
         else if (command == "groups")
         {
           if(args.size() > 1)
@@ -824,6 +832,7 @@ namespace Shell
           }
           
         }
+        // handles chown command
         else if (command == "chown")
         {
           if(args.size() != 2)
@@ -886,6 +895,7 @@ namespace Shell
             }
           }
         }
+        // handles chgrp command
         else if (command == "chgrp")
         {
           if(args.size() != 2)
@@ -907,6 +917,7 @@ namespace Shell
               file->group = args[0];
           }
         }
+        // handles whoami command
         else if (command == "whoami")
         {
           if(args.size() > 0)
@@ -919,6 +930,7 @@ namespace Shell
             std::cout << curUser->Username() << std::endl;
           }
         }
+        // handles switchto command
         else if (command == "switchto")
         {
           // switches to another user
@@ -1223,6 +1235,7 @@ namespace Shell
         }
         return true;
       }
+
       // returns the current working directory
       std::string pwd()
       {
@@ -1245,6 +1258,7 @@ namespace Shell
         // return directory 
         return dir;
       }
+
       // Finds the file or not, takes a path and returns a pointer
       // pointer is null if it wasn't found
       Node* findFile(std::string path)
@@ -1291,6 +1305,7 @@ namespace Shell
         // return if we found it or no
         return succeed ? next : nullptr;
       }
+
       // adds another user with the given name and the group
       // returns the pointer to the new user nullptr if already exists
       User* AddUser(std::string name, std::string group)

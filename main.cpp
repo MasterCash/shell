@@ -1,5 +1,5 @@
 /*
- * Name: Cash 
+ * Name: Josh Cash, Jeffrey Strahm, Hannah Reinbolt
  * Class: Operating Systems
  * Assignment Shell Emulator
  */
