@@ -92,6 +92,10 @@ namespace Shell
       ull FreeMemory() const { return freeMemory; }
       /** returns if the thread has a running task with the given id */
       bool HasTask(ull id) const { return tasks.find(id) == tasks.end(); }
+      /** returns the list of waiting ids since the start of this thread */
+      const std::list<ull> WaitingIDs() const { return waitingIDs; }
+      /** returns the list of finished ids since the start of this thread */
+      const std::list<ull> FinishedIDs() const { return finishedIDs; }
       /** returns if the thread has a finished task with the given id */
       bool HasCompletedTask(ull _id) const 
       { 
@@ -190,7 +194,7 @@ namespace Shell
       /**
        * Update time since last call
        * @param  time  time since last called
-       * @return list of finished tasked
+       * @return list of finished tasks for this call
        * 
        * the update function of a thread, Should be called by 
        * the "Computer" with time since last call.
