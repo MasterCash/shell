@@ -57,6 +57,8 @@ namespace Shell
       std::array<int, 3> perms;
       // friends with a computer
       friend Computer;
+      // list of tasks (files only)
+      std::array<Task*> tasklist;
     public:
       // Constructors 
       Node(std::string n, bool dir, Node* p, int s, std::string u, std::string g)
@@ -72,6 +74,8 @@ namespace Shell
         group = g;
         size = s;
         perms = isDir ? DEFAULT_PERM_FOLDER : DEFAULT_PERM_FILE;
+        tasklist.insert(new Task(1, ))
+
       }
       Node(std::string n, bool dir, Node* p) : Node(n, dir, p, 1, p->user, p->group) { }
       // deconstructor
@@ -82,6 +86,9 @@ namespace Shell
         {
           delete node.second;
         }
+        // delete tasks in tasklist
+        for(auto tasks : tasklist)
+          delete tasks;
       }
       // updates the timestamp of the node
       void UpdateTimeStamp()
