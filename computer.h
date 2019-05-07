@@ -92,10 +92,6 @@ namespace Shell
        */
       std::map<ull, Thread*> threads;
       /**
-       * used to track the processes for initialization of the task monitor.
-       */
-      std::vector<process> processes;
-      /**
        * used to track the processes that need to be updated/created.
        */
       std::queue<process> processesToUpdate;
@@ -194,7 +190,7 @@ namespace Shell
         std::thread t(&Computer::client, std::ref(*this));
         console();
         running = false;
-        t.join();
+        // t.join();
       }
       
       void threadUpdate()
@@ -205,7 +201,10 @@ namespace Shell
           {
             auto l = threadObj.second->Update(1);
             for(auto item : l)
+            {
+              std::cout << item << " " << threadObj.second->GetTask(item)->ID() << std::endl;
               updateTask(item, threadObj.second->GetTask(item)->MemoryUsage(), threadObj.second->GetTask(item)->TimeRemaining());
+            }
           }
           sleep(1);
         }
@@ -213,128 +212,154 @@ namespace Shell
       bool Running() const { return running; }
     // Private functions
     private:
-    // handles the client side server
-    // @input running: should be a pointer to the running variable of the computer.
-    // @input conected: should be a pointer to the connected variable of the computer.
-    // @input tasks: should be a pointer to the proccesses vector.
-    // @input update: should be a pointer to the update queue.
-    void client()
-    {
-      int sockfd, portno = 41717, n, err = 0;
-      struct sockaddr_in serv_addr;
-      struct hostent *server;
-
-      char buffer[256];
-      while (running)
-      {
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        while (sockfd < 0) {
-          sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        }
-        server = gethostbyname("localhost");
-        while (server == NULL)
-        {
-          server = gethostbyname("localhost");
-          usleep(100);
-        }
-        bzero((char *) &serv_addr, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        bcopy((char *)server->h_addr, 
-            (char *)&serv_addr.sin_addr.s_addr,
-            server->h_length);
-        serv_addr.sin_port = htons(portno);
-        try
-        {
-          while (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) >= 0)
-          {
-            continue;
-          }
-          while (true)
-          {
-            if (connected && processesToUpdate.size() > 0)
-            {
-              while (processesToUpdate.size() > 0)
-              {
-                process up = processesToUpdate.front();
-                processesToUpdate.pop();
-                std::string input = "u" + std::to_string(up.id) + "-" +
-                                  std::to_string(up.memory) + "-" +
-                                  std::to_string((up.time > 999999) ? 999999 : up.time);
-                bzero(buffer,256);
-                for (unsigned int i = 0; i < input.size(); i++)
-                {
-                  buffer[i] = input[i];
-                }
-                n = -1;
-                while(n < 0)
-                {
-                  n = write(sockfd,buffer,strlen(buffer));
-                  if (n < 0)
-                  {
-                    error("ERROR writing to socket");
-                    err++;
-                    if (err > 10)
-                    {
-                      throw(1);
-                    }
-                  }
-
-                }
-                bzero(buffer,256);
-                n = read(sockfd,buffer,255);
-                if (n < 0) 
-                  error("ERROR reading from socket");
-              }
-            }
-            else
-            {
-              for (auto it = processes.begin(); it != processes.end(); ++it)
-              {
-                std::string input = "n" + std::to_string((*it).id) + "-" + (*it).name + "-" +
-                                  std::to_string((*it).threadId) + "-" + std::to_string((*it).memory)
-                                  + "-" + std::to_string(((*it).time > 999999) ? 999999 : (*it).time);
-                bzero(buffer,256);
-                for (unsigned int i = 0; i < input.size(); i++)
-                {
-                  buffer[i] = input[i];
-                }
-                n = -1;
-                while(n < 0)
-                {
-                  n = write(sockfd,buffer,strlen(buffer));
-                  if (n < 0)
-                  {
-                    error("ERROR writing to socket");
-                    err++;
-                    if (err > 10)
-                    {
-                      throw(1);
-                    }
-                  }
-
-                }
-                bzero(buffer,256);
-                n = read(sockfd,buffer,255);
-                if (n < 0) 
-                  error("ERROR reading from socket");
-              }
-
-              connected = true;
-            }
-          }
-        }
-        catch(int e)
-        {
-          std::cout << "disconnected" << '\n';
-        }
-      }
-      
-      printf("%s\n",buffer);
-      close(sockfd);
     
-      return;
-    }
+      // handles the client side server
+      // @input running: should be a pointer to the running variable of the computer.
+      // @input conected: should be a pointer to the connected variable of the computer.
+      // @input tasks: should be a pointer to the proccesses vector.
+      // @input update: should be a pointer to the update queue.
+      void client()
+      {
+        int sockfd, portno = 41717, n, err = 0;
+        struct sockaddr_in serv_addr;
+        struct hostent *server;
 
+        char buffer[256];
+        while (running)
+        {
+          sockfd = socket(AF_INET, SOCK_STREAM, 0);
+          while (running && sockfd < 0) {
+            sockfd = socket(AF_INET, SOCK_STREAM, 0);
+          }
+          server = gethostbyname("localhost");
+          while (running && server == NULL)
+          {
+            server = gethostbyname("localhost");
+            usleep(100);
+          }
+          bzero((char *) &serv_addr, sizeof(serv_addr));
+          serv_addr.sin_family = AF_INET;
+          bcopy((char *)server->h_addr, 
+              (char *)&serv_addr.sin_addr.s_addr,
+              server->h_length);
+          serv_addr.sin_port = htons(portno);
+          try
+          {
+            while (running && connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) == 0)
+            {
+              continue;
+            }
+            while (running)
+            {
+              if (connected && processesToUpdate.size() > 0)
+              {
+                std::cout << "updating!" << std::endl;
+                while (running && processesToUpdate.size() > 0)
+                {
+                  process up = processesToUpdate.front();
+                  processesToUpdate.pop();
+                  std::string input;
+                  if (up.threadId != -1)
+                  {
+                    std::cout << "Making new!" << std::endl;
+                    input = "n" + std::to_string(up.id) + "-" + up.name + "-" +
+                            std::to_string(up.threadId) + "-" +
+                            std::to_string(up.memory) + "-" +
+                            std::to_string((up.time > 999999) ? 999999 : up.time);
+                  }
+                  else
+                  {
+                    std::cout << "Making update!" << std::endl;
+                    input = "u" + std::to_string(up.id) + "-" +
+                            std::to_string(up.memory) + "-" +
+                            std::to_string((up.time > 999999) ? 999999 : up.time);
+                  }
+                  
+                  bzero(buffer,256);
+                  for (unsigned int i = 0; i < input.size(); i++)
+                  {
+                    buffer[i] = input[i];
+                  }
+                  n = -1;
+                  while(running && n < 0)
+                  {
+                    std::cout << "writing to server!" << std::endl;
+                    n = write(sockfd,buffer,strlen(buffer));
+                    if (n < 0)
+                    {
+                      std::cout << "ERROR writing to socket";
+                      err++;
+                      if (err > 10)
+                      {
+                        throw(1);
+                      }
+                    }
+                    std::cout << "update written!" << std::endl;
+                  }
+                  bzero(buffer,256);
+                  n = read(sockfd,buffer,255);
+                  if (n < 0) 
+                    error("ERROR reading from socket");
+                }
+              }
+              else if (!connected)
+              {
+                for (auto it : threads)
+                {
+                  auto tasks = it.second->GetTasks();
+                  for (auto task : tasks)
+                  {
+                    if (task.second->Status() == Task::done || task.second->Status() == Task::error)
+                    {
+                      continue;
+                    }
+                    auto t = *task.second;
+                    std::string input = ("n" + std::to_string(t.ID()) + "-" + t.Name() + "-" +
+                                      std::to_string(it.second->ID()) + "-" +
+                                      std::to_string(t.MemoryUsage()) + "-" +
+                                      std::to_string((t.TimeRemaining() > 999999) ? 999999 : t.TimeRemaining()));
+                    std::cout << input << std::endl;
+                    bzero(buffer,256);
+                    for (unsigned int i = 0; i < input.size(); i++)
+                    {
+                      buffer[i] = input[i];
+                    }
+                    n = -1;
+                    while(running && n < 0)
+                    {
+                      
+                      n = write(sockfd,buffer,strlen(buffer));
+                      if (n < 0)
+                      {
+                        error("ERROR writing to socket");
+                        err++;
+                        if (err > 10)
+                        {
+                          throw(1);
+                        }
+                      }
+                    }
+                    bzero(buffer,256);
+                    n = read(sockfd,buffer,255);
+                    if (n < 0) 
+                      error("ERROR reading from socket");
+                  }
+                }
+                connected = true;
+              }
+            }
+          }
+          catch(int e)
+          {
+            std::cout << "disconnected" << '\n';
+          }
+        }
+        
+        printf("%s\n",buffer);
+        close(sockfd);
+      
+        return;
+      }
 
       // Login function. returns true if user and password is valid
       // false otherwise
@@ -1378,6 +1403,7 @@ namespace Shell
             {
               Task* t = new Task(file->GetTask());
               threads[0]->AddTask(t);
+              std::cout << "New Task: " << t->ID() << std::endl;
               newTask(t->Name(), t->ID(), 0, t->MemoryUsage(), t->TimeRemaining());
               std::cout << file->Name() << " executed\n";
             }
@@ -1502,27 +1528,15 @@ namespace Shell
        */
       void updateTask(int id, int memory, ull time)
       {
-        for (auto it = std::begin(processes); it!=std::end(processes); ++it)
+        if (connected)
         {
-          if ((*it).id == id)
-          {
-            if (time <= 0)
-            {
-              (*it).time = time;
-              processesToUpdate.push(*it);
-              processes.erase(it);
-              break;
-            }
-            (*it).memory = memory;
-            // (*it).cpu = cpu;
-            (*it).time = time;
-
-            if (connected) {
-              processesToUpdate.push(*it);
-            }
-
-            break;
-          }
+          process newProcess;
+          newProcess.id = id;
+          newProcess.threadId = -1;
+          newProcess.memory = memory;
+          // newProcess.cpu = cpu;
+          newProcess.time = time;
+          processesToUpdate.push(newProcess);
         }
       }
 
@@ -1531,17 +1545,15 @@ namespace Shell
        */
       void killTask(int id)
       {
-        for (auto it = std::begin(processes); it!=std::end(processes); ++it)
+        if (connected)
         {
-          if ((*it).id == id)
-          {
-            if (time <= 0)
-            {
-              processesToUpdate.push(*it);
-              processes.erase(it);
-              break;
-            }
-          }
+          process newProcess;
+          newProcess.id = id;
+          newProcess.threadId = -1;
+          newProcess.memory = 0;
+          // newProcess.cpu = cpu;
+          newProcess.time = 0;
+          processesToUpdate.push(newProcess);
         }
       }
 
@@ -1550,33 +1562,25 @@ namespace Shell
        */
       void newTask(std::string name, int id, int threadId, int memory, ull time)
       {
+        std::cout << "<< NewTask: Adding Task: " << id << std::endl;
         // stop, the process is done
         if (time == 0) {
           return;
         }
-
-        for (auto it = std::begin(processes); it!=std::end(processes); ++it)
-        {
-          if ((*it).id == id)
-          {
-            std::cout << "process already exists";
-
-            return;
-          }
-        }
-
-        process newProcess;
-        newProcess.name = name;
-        newProcess.id = id;
-        newProcess.threadId = threadId;
-        newProcess.memory = memory;
-        // newProcess.cpu = cpu;
-        newProcess.time = time;
-        processes.push_back(newProcess);
-
+        std::cout << "<< NewTask: Has Time: " << id << std::endl;
         if (connected)
         {
+          std::cout << "<< NewTask: Is Connected: " << id << std::endl;
+          process newProcess;
+          newProcess.name = name;
+          newProcess.id = id;
+          newProcess.threadId = threadId;
+          newProcess.memory = memory;
+          // newProcess.cpu = cpu;
+          newProcess.time = time;
+          std::cout << "<< NewTask: Built Process: " << id << std::endl;
           processesToUpdate.push(newProcess);
+          std::cout << "<< NewTask: Pushed Process: " << id << std::endl;
         }
 
         return;

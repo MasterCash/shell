@@ -12,7 +12,7 @@
 
 void error(const char *msg)
 {
-  perror(msg);
+  std::cout << msg << std::endl;
   // exit(1);
 }
 
@@ -50,15 +50,17 @@ void static talker(int portno, bool &stop, Display::TaskMonitor &monitor)
           error("ERROR on binding");
   listen(sockfd,5);
   clilen = sizeof(cli_addr);
-  newsockfd = accept(sockfd, 
-              (struct sockaddr *) &cli_addr, 
-              &clilen);
-  if (newsockfd < 0) 
+  newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+  if (newsockfd < 0)
+  {
+    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     error("ERROR on accept");
+  }
   while(!stop)
   {
     bzero(buffer,256);
     n = read(newsockfd,buffer,255);
+    std::cout << "\n\n\n\n\n\nread message\n\n\n\n\n\n\n\n\nread message" << std::endl;
     if (n < 0) error("ERROR reading from socket");
     printf("Here is the message: %s\n",buffer);
     if (buffer[0] == 'n')
@@ -242,17 +244,18 @@ int main(int argc, char *argv[])
   // start the quitting thread.
   std::thread (check, std::ref(stop)).detach();
   std::thread (talker, 41717, std::ref(stop), std::ref(monitor)).detach();
+  monitor.setComp(500);
   // set up the computer and enter in fake processes.
-  monitor.setComp(100);
-  monitor.addProcess("TEST1"      , 1, 0, 10, 100);
-  monitor.addProcess("TEST2"      , 2, 1, 0, 59);
-  monitor.addProcess("TESTING3"   , 3, 1, 2, 120);
-  monitor.addProcess("TESTING4"   , 4, 1, 6, 1800);
-  monitor.addProcess("TESTING5"   , 5, 2, 0, 18000);
-  monitor.addProcess("TESTING678" , 6, 2, 0, 2);
-  monitor.addProcess("TESTING700" , 7, 1, 4, 1);
-  monitor.addProcess("TESTING800" , 7, 2, 4, 3600);
-  monitor.addProcess("TESTING9001", 8, 1, 4, 600);
+  //monitor.setComp(100);
+  //monitor.addProcess("TEST1"      , 1, 0, 10, 100);
+  //monitor.addProcess("TEST2"      , 2, 1, 0, 59);
+  //monitor.addProcess("TESTING3"   , 3, 1, 2, 120);
+  //monitor.addProcess("TESTING4"   , 4, 1, 6, 1800);
+  //monitor.addProcess("TESTING5"   , 5, 2, 0, 18000);
+  //monitor.addProcess("TESTING678" , 6, 2, 0, 2);
+  //monitor.addProcess("TESTING700" , 7, 1, 4, 1);
+  //monitor.addProcess("TESTING800" , 7, 2, 4, 3600);
+  //monitor.addProcess("TESTING9001", 8, 1, 4, 600);
   // print the stuff.
   monitor.print();
   // continue printing the stuff after short breaks until it is told to stop.
