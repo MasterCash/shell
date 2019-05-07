@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
   }
   // start the quitting thread.
   std::thread (check, std::ref(stop)).detach();
-  std::thread (talker, 51717, std::ref(stop), std::ref(monitor)).detach();
+  std::thread (talker, 41717, std::ref(stop), std::ref(monitor)).detach();
   // set up the computer and enter in fake processes.
   monitor.setComp(100);
   monitor.addProcess("TEST1"      , 1, 0, 10, 100);

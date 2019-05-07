@@ -84,7 +84,7 @@ namespace Shell
        * if process is not done, sets status to error 
        * indicating did not finish. 
        */
-      void Kill() { status = status == done ? done : error; }
+      void Kill() { status = status == done ? done : error; timeRemaining = 0; }
       /**
        * @brief  Runs a task for specified time
        * @param  time  The time to run the process for
