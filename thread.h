@@ -8,7 +8,6 @@
 #include "task.h"
 namespace Shell
 {
-
   /**
    * @brief class to represent a thread for the shell program 
    *
@@ -17,6 +16,26 @@ namespace Shell
   {
     public:
       enum ScheduleType {fifo, roundrobin2, shortestprocess};
+      static ScheduleType IntToType(const int i)
+      {
+        ScheduleType t;
+        switch (i)
+        {
+          case fifo:
+            t = fifo;
+            break;
+          case roundrobin2:
+            t = roundrobin2;
+            break;
+          case shortestprocess:
+            t = shortestprocess;
+            break;
+          default:
+            t = fifo;
+            break;
+        }
+        return t;
+      }
       static std::array<std::string, 3> TypeName;
     private:
       bool isLocked;
@@ -56,7 +75,6 @@ namespace Shell
        * id of this thread
        */
       ull id;
-
     public:
       /**
        * Initialize a Thread 

@@ -121,7 +121,7 @@ namespace Shell
         id = ID_COUNTER++;
         processTime = pTime;
         memoryUsage = memUsage;
-        timeRemaining = memoryUsage;
+        timeRemaining = processTime;
         status = waiting;
       }
 

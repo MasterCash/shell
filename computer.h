@@ -2,6 +2,7 @@
 #define COMPUTER_H
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include "node.h"
 #include <limits>
 #include <sstream>
@@ -1058,6 +1059,80 @@ namespace Shell
               }
             }
             
+          }
+          
+        }
+
+        else if(command == "load")
+        {
+          if(args.size() < 1)
+          {
+            std::cout << "load: missing argument" << std::endl;
+          }
+          else if(args.size() > 1)
+          {
+            std::cout << "load: too many arguments" << std::endl;
+          }
+          else
+          {
+            // hold results by string
+            std::string buffer = "";
+            // check if args[0] is a valid file
+            std::ifstream file (args[0]);
+
+            // check if the file is open
+            if(!file.is_open())
+            {
+              std::cout << "load: error opening file" << std::endl;
+            }
+            else
+            {
+              int threadCount = 0;
+              file >> threadCount;
+              std::map<ull, ull> IDMapping;
+              // load in the thread config
+              for(int i = 0; i < threadCount; i++)
+              {
+                int type;
+                ull id, mem;
+
+                file >> id >> type >> mem;
+                auto threadIt = threads.find(id);
+                if(threadIt == threads.end())
+                {
+                  Thread* t = new Thread(mem, Thread::IntToType(type));
+                  IDMapping.emplace(id, t->ID());
+                  threads.emplace(t->ID(), t);
+                }
+                else
+                  IDMapping.emplace(id, id);
+                
+              }
+              
+              int taskCount = 0;
+              // add task
+              file >> taskCount;
+              for(int i = 0; i < taskCount; i++)
+              {
+                std::string taskName;
+                ull taskTime, taskMem, threadID;
+                file >> taskName >> taskTime >> taskMem >> threadID;
+                std::cout << taskTime << std::endl;
+                std::cout << taskMem << std::endl;
+                auto threadIDIt = IDMapping.find(threadID);
+                if(threadIDIt == IDMapping.end())
+                  threadID = 0;
+                else
+                  threadID = threadIDIt->second;
+                
+                // add new task
+                auto threadmother = threads.find(threadID);
+                Task* t = new Task(taskName, taskTime, taskMem); 
+                if(!threadmother->second->AddTask(t))
+                  delete t;
+              }
+              
+            }
           }
           
         }
