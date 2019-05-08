@@ -10,17 +10,11 @@
 #include <unistd.h>
 #include "taskMonitor.h"
 
-void error(const char *msg)
-{
-  perror(msg);
-  // exit(1);
-}
-
 // create a mutlitask thread that just checks for the quit command
 void static check(bool &stop)
 {
   std::string input;
-  while(true)
+  while(!stop)
   {
     std::cin >> input;
     if (input[0] == 'q' || input[0] == 'Q')
@@ -35,14 +29,19 @@ void static talker(bool &stop, Display::TaskMonitor &monitor)
 {
   std::ifstream infile;
   std::string input;
-  ull line;
+  ull line = 0;
 
   while (!stop)
   {
     infile.open("monitor/share.txt",std::ifstream::binary);
-    for (int i = 0; i < line; i++)
+    for (unsigned int i = 0; i < line; i++)
     {
       getline(infile, input);
+      if (input[0] == 'c')
+      {
+        line = i;
+        monitor.clear();
+      }
     }
     while (getline(infile, input))
     {
@@ -144,7 +143,13 @@ void static talker(bool &stop, Display::TaskMonitor &monitor)
       }
       else if (input[0] == 'q')
       {
+        stop = true;
+        remove( "monitor/share.txt" );
         return;
+      }
+      else if (input[0] == 'c')
+      {
+        monitor.clear();
       }
     }
     infile.close();
@@ -222,10 +227,10 @@ int main(int argc, char *argv[])
     monitor.changeSize(size, hight);
   }
   // start the quitting thread.
-  std::thread (check, std::ref(stop)).detach();
-  std::thread (talker, std::ref(stop), std::ref(monitor)).detach();
+  std::thread c(check, std::ref(stop));
+  std::thread t(talker, std::ref(stop), std::ref(monitor));
   // set up the computer and enter in fake processes.
-  monitor.setComp(500);
+  monitor.setComp(200);
   //monitor.addProcess("TEST1"      , 1, 0, 10, 100);
   //monitor.addProcess("TEST2"      , 2, 1, 0, 59);
   //monitor.addProcess("TESTING3"   , 3, 1, 2, 120);
@@ -238,15 +243,13 @@ int main(int argc, char *argv[])
   // print the stuff.
   monitor.print();
   // continue printing the stuff after short breaks until it is told to stop.
-  while (true)
+  while (!stop)
   {
-    if (stop)
-    {
-      break;
-    }
     usleep(500000);
     monitor.print();
   }
+  c.join();
+  t.join();
 
   // safety return
   return 0;

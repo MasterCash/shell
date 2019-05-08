@@ -184,7 +184,7 @@ namespace Shell
             for(auto item : l)
               killTask(item);
             const Task *t = threadObj.second->GetRunningTask();
-            if (t)
+            if (t != nullptr)
               updateTask(t->ID(), t->MemoryUsage(), t->TimeRemaining());
           }
           sleep(1);
@@ -204,6 +204,13 @@ namespace Shell
       std::ofstream outfile ("monitor/share.txt",std::ofstream::binary);
       std::string input;
       char buffer[256];
+
+      input = "c\n";
+      for (unsigned int i = 0; i < input.size(); i++)
+      {
+        buffer[i] = input[i];
+      }
+      outfile.write(buffer, input.size());
 
       while (running) 
       {
@@ -240,6 +247,13 @@ namespace Shell
         }
         //writing.close();
       }
+
+      input = "q\n";
+      for (unsigned int i = 0; i < input.size(); i++)
+      {
+        buffer[i] = input[i];
+      }
+      outfile.write(buffer, input.size());
 
       outfile.close();
 
@@ -1117,8 +1131,6 @@ namespace Shell
                 std::string taskName;
                 ull taskTime, taskMem, threadID;
                 file >> taskName >> taskTime >> taskMem >> threadID;
-                std::cout << taskTime << std::endl;
-                std::cout << taskMem << std::endl;
                 auto threadIDIt = IDMapping.find(threadID);
                 if(threadIDIt == IDMapping.end())
                   threadID = 0;
@@ -1130,6 +1142,8 @@ namespace Shell
                 Task* t = new Task(taskName, taskTime, taskMem); 
                 if(!threadmother->second->AddTask(t))
                   delete t;
+                else
+                  newTask(t->Name(), t->ID(), threadID, t->MemoryUsage(), t->TimeRemaining());
               }
               
             }
@@ -1380,7 +1394,7 @@ namespace Shell
                 {
                   Task* t = new Task(file->GetTask());
                   itemIt->second->AddTask(t);
-                  newTask(t->Name(), t->ID(), 0, t->MemoryUsage(), t->TimeRemaining());
+                  newTask(t->Name(), t->ID(), id, t->MemoryUsage(), t->TimeRemaining());
                   std::cout << file->Name() << " executed\n";
                 }
               }
