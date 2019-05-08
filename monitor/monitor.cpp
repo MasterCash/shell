@@ -31,146 +31,128 @@ void static check(bool &stop)
   }
 }
 
-void static talker(int portno, bool &stop, Display::TaskMonitor &monitor)
+void static talker(bool &stop, Display::TaskMonitor &monitor)
 {
-  int sockfd, newsockfd;
-  socklen_t clilen;
-  char buffer[256];
-  struct sockaddr_in serv_addr, cli_addr;
-  int n;
-  sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0) 
-    error("ERROR opening socket");
-  bzero((char *) &serv_addr, sizeof(serv_addr));
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = INADDR_ANY;
-  serv_addr.sin_port = htons(portno);
-  if (bind(sockfd, (struct sockaddr *) &serv_addr,
-          sizeof(serv_addr)) < 0) 
-          error("ERROR on binding");
-  listen(sockfd,5);
-  clilen = sizeof(cli_addr);
-  newsockfd = accept(sockfd, 
-              (struct sockaddr *) &cli_addr, 
-              &clilen);
-  if (newsockfd < 0) 
-    error("ERROR on accept");
-  while(!stop)
+  std::ifstream infile;
+  std::string input;
+  ull line;
+
+  while (!stop)
   {
-    bzero(buffer,256);
-    n = read(newsockfd,buffer,255);
-    if (n < 0) error("ERROR reading from socket");
-    printf("Here is the message: %s\n",buffer);
-    if (buffer[0] == 'n')
+    infile.open("monitor/share.txt",std::ifstream::binary);
+    for (int i = 0; i < line; i++)
     {
-      // store the attributes of the new process.
-      std::string name = "";
-      int id = 0;
-      int threadId = 0;
-      int memory = 0;
-      ull time = 0;
-      // store the location that is being processed, and the current input.
-      int loc = 1;
-      int num = 0;
-      // store which input we are on.
-      while(buffer[loc] != '|')
+      getline(infile, input);
+    }
+    while (getline(infile, input))
+    {
+      line++;
+      //std::cout << input << std::endl;
+
+      if (input[0] == 'n')
       {
-        loc++;
-        if (buffer[loc] == '-')
+        // store the attributes of the new process.
+        std::string name = "";
+        int id = 0;
+        int threadId = 0;
+        int memory = 0;
+        ull time = 0;
+        // store the location that is being processed, and the current input.
+        int loc = 0;
+        int num = 0;
+        // store which input we are on.
+        while(input[loc + 1] != '|')
         {
-          num++;
-          continue;
+          loc++;
+          if (input[loc] == '-')
+          {
+            num++;
+            continue;
+          }
+          if (num == 0)
+          {
+            id *= 10;
+            id += input[loc] - '0';
+          }
+          else if (num == 1)
+          {
+            name += input[loc];
+          }
+          else if (num == 2)
+          {
+            threadId *= 10;
+            threadId += input[loc] - '0';
+          }
+          else if (num == 3)
+          {
+            memory *= 10;
+            memory += input[loc] - '0';
+          }
+          else if (num == 4)
+          {
+            time *= 10;
+            time += input[loc] - '0';
+          }
+          else
+          {
+            break;
+          }
         }
-        if (num == 0)
-        {
-          id *= 10;
-          id += buffer[loc] - '0';
-        }
-        else if (num == 1)
-        {
-          name += buffer[loc];
-        }
-        else if (num == 2)
-        {
-          threadId *= 10;
-          threadId += buffer[loc] - '0';
-        }
-        else if (num == 3)
-        {
-          memory *= 10;
-          memory += buffer[loc] - '0';
-        }
-        else if (num == 4)
-        {
-          time *= 10;
-          time += buffer[loc] - '0';
-        }
-        else
-        {
-          break;
-        }
+        // add the process to the to the task manager
+        monitor.addProcess(name, id, threadId, memory, time);
       }
-      // add the process to the to the task manager
-      monitor.addProcess(name, id, threadId, memory, time);
-      n = write(newsockfd,"I got your message",18);
-    }
-    else if (buffer[0] == 'u')
-    {
-      // store the attributes of the new process.
-      int id = 0;
-      int memory = 0;
-      ull time = 0;
-      // store the location that is being processed, and the current input.
-      int loc = 1;
-      int num = 0;
-      // store which input we are on.
-      while(buffer[loc] != '|')
+      else if (input[0] == 'u')
       {
-        loc++;
-        if (buffer[loc] == '-')
+        // store the attributes of the new process.
+        int id = 0;
+        int memory = 0;
+        ull time = 0;
+        // store the location that is being processed, and the current input.
+        int loc = 0;
+        int num = 0;
+        // store which input we are on.
+        while(input[loc + 1] != '|')
         {
-          num++;
-          continue;
+          loc++;
+          if (input[loc] == '-')
+          {
+            num++;
+            continue;
+          }
+          if (num == 0)
+          {
+            id *= 10;
+            id += input[loc] - '0';
+          }
+          else if (num == 1)
+          {
+            memory *= 10;
+            memory += input[loc] - '0';
+          }
+          else if (num == 2)
+          {
+            time *= 10;
+            time += input[loc] - '0';
+          }
+          else
+          {
+            break;
+          }
         }
-        if (num == 0)
-        {
-          id *= 10;
-          id += buffer[loc] - '0';
-        }
-        else if (num == 1)
-        {
-          memory *= 10;
-          memory += buffer[loc] - '0';
-        }
-        else if (num == 2)
-        {
-          time *= 10;
-          time += buffer[loc] - '0';
-        }
-        else
-        {
-          break;
-        }
+        // updates the process
+        monitor.updateProcess(id, memory, time);
       }
-      // updates the process
-      monitor.updateProcess(id, memory, time);
-      n = write(newsockfd,"I got your message",18);
+      else if (input[0] == 'q')
+      {
+        return;
+      }
     }
-    else if (buffer[0] == 'q')
-    {
-      close(newsockfd);
-      close(sockfd);
-      n = write(newsockfd,"quitting....",18);
-      return;
-    }
-    else
-    {
-      n = write(newsockfd,"Improper message",18);
-    }
+    infile.close();
   }
-  if (n < 0) error("ERROR writing to socket");
-  close(newsockfd);
-  close(sockfd);
+
+  infile.close();
+
+  return;
 }
 
 int main(int argc, char *argv[])
@@ -241,18 +223,18 @@ int main(int argc, char *argv[])
   }
   // start the quitting thread.
   std::thread (check, std::ref(stop)).detach();
-  std::thread (talker, 41717, std::ref(stop), std::ref(monitor)).detach();
+  std::thread (talker, std::ref(stop), std::ref(monitor)).detach();
   // set up the computer and enter in fake processes.
-  monitor.setComp(100);
-  monitor.addProcess("TEST1"      , 1, 0, 10, 100);
-  monitor.addProcess("TEST2"      , 2, 1, 0, 59);
-  monitor.addProcess("TESTING3"   , 3, 1, 2, 120);
-  monitor.addProcess("TESTING4"   , 4, 1, 6, 1800);
-  monitor.addProcess("TESTING5"   , 5, 2, 0, 18000);
-  monitor.addProcess("TESTING678" , 6, 2, 0, 2);
-  monitor.addProcess("TESTING700" , 7, 1, 4, 1);
-  monitor.addProcess("TESTING800" , 7, 2, 4, 3600);
-  monitor.addProcess("TESTING9001", 8, 1, 4, 600);
+  monitor.setComp(500);
+  //monitor.addProcess("TEST1"      , 1, 0, 10, 100);
+  //monitor.addProcess("TEST2"      , 2, 1, 0, 59);
+  //monitor.addProcess("TESTING3"   , 3, 1, 2, 120);
+  //monitor.addProcess("TESTING4"   , 4, 1, 6, 1800);
+  //monitor.addProcess("TESTING5"   , 5, 2, 0, 18000);
+  //monitor.addProcess("TESTING678" , 6, 2, 0, 2);
+  //monitor.addProcess("TESTING700" , 7, 1, 4, 1);
+  //monitor.addProcess("TESTING800" , 7, 2, 4, 3600);
+  //monitor.addProcess("TESTING9001", 8, 1, 4, 600);
   // print the stuff.
   monitor.print();
   // continue printing the stuff after short breaks until it is told to stop.

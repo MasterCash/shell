@@ -9,13 +9,7 @@
 #include <thread>
 #include <pthread.h>
 #include <cmath>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <fstream>
 
 #ifndef TASKMONITOR_H
 #define TASKMONITOR_H
@@ -27,8 +21,8 @@ namespace Display
   struct process {
     std::string name;
     int id;
-    int threadId;
-    int memory;
+    unsigned int threadId;
+    unsigned int memory;
     // int cpu;
     ull time;
   };
@@ -44,31 +38,31 @@ namespace Display
       // tracks weither or not the process is printing
       bool printing;
       // track the machine info.
-      int memory;
+      unsigned int memory;
       // int cpu;
       // stores the size of the total display.
-      int screenSize;
-      int screenHight;
+      unsigned int screenSize;
+      unsigned int screenHight;
       // stores the size of the sub-parts of the display.
-      int memorySize;
+      unsigned int memorySize;
       // int cpuSize;
-      int idSize;
-      int threadIdSize;
-      int nameSize;
+      unsigned int idSize;
+      unsigned int threadIdSize;
+      unsigned int nameSize;
       // int cpuUSize;
-      int memoryUSize;
-      int timeSize;
+      unsigned int memoryUSize;
+      unsigned int timeSize;
       // stores the minimum size each part can be.
-      const int MINSIZE = 50;
-      const int MINHIGHT = 3;
-      const int MINMEMORYSIZE = 6;
+      const unsigned int MINSIZE = 50;
+      const unsigned int MINHIGHT = 3;
+      const unsigned int MINMEMORYSIZE = 6;
       // const int MINCPUSIZE = 5;
-      const int MINIDSIZE = 3;
-      const int MINTHREADIDSIZE = 3;
-      const int MINNAMESIZE = 12;
+      const unsigned int MINIDSIZE = 3;
+      const unsigned int MINTHREADIDSIZE = 3;
+      const unsigned int MINNAMESIZE = 12;
       // const int MINCPUUSIZE = 5;
-      const int MINMEMORYUSIZE = 6;
-      const int MINTIMESIZE = 9;
+      const unsigned int MINMEMORYUSIZE = 6;
+      const unsigned int MINTIMESIZE = 9;
 
     // Public functions
     public:
@@ -93,7 +87,7 @@ namespace Display
       }
 
       // argumented constructor
-      TaskMonitor(int mem, int size, int hight)
+      TaskMonitor(unsigned int mem, unsigned int size, unsigned int hight)
       {
         // set the memory and cpu
         memory = mem;
@@ -123,7 +117,7 @@ namespace Display
         memoryUSize = MINMEMORYUSIZE;
         timeSize = MINTIMESIZE;
         // increase the size of the parts as much as possible, and evenly.
-        for (int i = 0; i < screenSize - MINSIZE; i++)
+        for (unsigned int i = 0; i < screenSize - MINSIZE; i++)
         {
           if (i % 7 == 0)
           {
@@ -156,14 +150,14 @@ namespace Display
         printing = true;
         // count the used cpu and memory.
         // int usedCPU = 0;
-        int usedMem = 0;
+        unsigned int usedMem = 0;
         for (auto it = std::begin(running); it!=std::end(running); ++it)
         {
           usedMem += (*it).memory;
           // usedCPU += (*it).cpu;
         }
         // helper int for printing buffering.
-        int remaining;
+        unsigned int remaining;
         // helper string for printing.
         std::string conv;
         // store the entire print out.
@@ -181,7 +175,7 @@ namespace Display
         empty.threadId = 0;
         empty.time = 0;
         // iterate over the screen hight.
-        for (int i = 0; i < screenHight; i++)
+        for (unsigned int i = 0; i < screenHight; i++)
         {
           // print out starting | with a new line.
           out << "\n|";
@@ -205,13 +199,13 @@ namespace Display
             out << "|";*/
             // print out memory header
             remaining = memorySize - MINMEMORYSIZE;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
             }
             out << "MEMORY";
             remaining = (memorySize - MINMEMORYSIZE) / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -219,13 +213,13 @@ namespace Display
             out << "|###|";
             // print out the id of the process.
             remaining = idSize - MINIDSIZE;
-            for (int w = 0; w < (remaining / 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2); w++)
             {
               out << " ";
             }
             out << " id";
             remaining -= remaining / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -233,13 +227,13 @@ namespace Display
             out << "|";
             // print out the thread id
             remaining = threadIdSize - MINTHREADIDSIZE;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
             }
             out << "Tid";
             remaining = remaining / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -247,13 +241,13 @@ namespace Display
             out << "|";
             // print out name header.
             remaining = nameSize - MINNAMESIZE;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
             }
             out << "    name    ";
             remaining = (nameSize - MINNAMESIZE) / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -275,13 +269,13 @@ namespace Display
             out << "|";*/
             // print out memory header
             remaining = memoryUSize - MINMEMORYUSIZE;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
             }
             out << "MEMORY";
             remaining = (memoryUSize - MINMEMORYUSIZE) / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -289,13 +283,13 @@ namespace Display
             out << "|";
             // print out time left header
             remaining = timeSize - MINTIMESIZE;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
             }
             out << "time left";
             remaining = (timeSize - MINTIMESIZE) / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -325,7 +319,7 @@ namespace Display
             }
             out << "|";*/
             // print out the memory bar if that precentage of memory is being used.
-            for (int w = 0; w < memorySize; w++)
+            for (unsigned int w = 0; w < memorySize; w++)
             {
               if (usedMem != 0 && usedMem >= round(static_cast<double>(memory) / (screenHight - 1) * (screenHight - i)))
               {
@@ -340,7 +334,7 @@ namespace Display
             out << "|###|";
             // print out the id number of the process
             conv = ((display.id == -1) ? "-" : std::to_string(display.id));
-            for (int w = conv.size(); w < idSize; w++)
+            for (unsigned int w = conv.size(); w < idSize; w++)
             {
               out << ((display.id == -1) ? "-" : "0");
             }
@@ -349,7 +343,7 @@ namespace Display
             out << "|";
             // print out the thread id of the process.
             conv = ((display.id == -1) ? "-" : std::to_string(display.threadId));
-            for (int w = conv.size(); w < threadIdSize; w++)
+            for (unsigned int w = conv.size(); w < threadIdSize; w++)
             {
               out << ((display.id == -1) ? "-" : "0");
             }
@@ -360,13 +354,13 @@ namespace Display
             if (display.name.size() > nameSize - 2)
             {
               out << " ";
-              for (int w = 0; w < nameSize - 3; w++)
+              for (unsigned int w = 0; w < nameSize - 3; w++)
               {
                 out << display.name[w];
               }
               out << "..";
             } else {
-              for (int w = display.name.size(); w < nameSize - 1; w++)
+              for (unsigned int w = display.name.size(); w < nameSize - 1; w++)
               {
                 out << " ";
               }
@@ -392,13 +386,13 @@ namespace Display
             double precent = (static_cast<double>(display.memory) / memory * 100);
             conv = std::to_string(static_cast<int>(precent));
             remaining = memoryUSize - conv.size() - 1;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2); w++)
             {
               out << " ";
             }
             out << conv << "%";
             remaining = remaining / 2;
-            for (int w = 0; w < remaining; w++)
+            for (unsigned int w = 0; w < remaining; w++)
             {
               out << " ";
             }
@@ -421,13 +415,13 @@ namespace Display
             }
             conv = timeMin + ":" + timeSec;
             remaining = timeSize - 1;
-            for (int w = 0; w < (remaining / 2) + (remaining % 2) - timeMin.size(); w++)
+            for (unsigned int w = 0; w < (remaining / 2) + (remaining % 2) - timeMin.size(); w++)
             {
               out << " ";
             }
             out << conv;
             remaining = (remaining / 2);
-            for (int w = 0; w < remaining - timeSec.size(); w++)
+            for (unsigned int w = 0; w < remaining - timeSec.size(); w++)
             {
               out << " ";
             }
@@ -440,7 +434,7 @@ namespace Display
         return;
       }
 
-      void addProcess(std::string name, int id, int threadId, int memory, ull time)
+      void addProcess(std::string name, int id, unsigned int threadId, unsigned int memory, ull time)
       {
         // stop, the process is done
         if (time == 0) {
@@ -451,7 +445,7 @@ namespace Display
         {
           if ((*it).id == id)
           {
-            std::cout << "process already exists";
+            std::cout << "process already exists: " << id << std::endl;
 
             return;
           }
@@ -464,12 +458,14 @@ namespace Display
         newProcess.memory = memory;
         // newProcess.cpu = cpu;
         newProcess.time = time;
+        // std::cout << "ID: " << id << "-Name: " << name << "-Mem: " << memory
+        //           << "-TID: " << threadId << "-Time: " << time << std::endl;
         running.push_back(newProcess);
 
         return;
       }
 
-      void updateProcess(int id, int memory, ull time)
+      void updateProcess(int id, unsigned int memory, ull time)
       {
         while (printing)
         {
@@ -518,7 +514,7 @@ namespace Display
         // cpuUSize = MINCPUUSIZE;
         memoryUSize = MINMEMORYUSIZE;
         timeSize = MINTIMESIZE;
-        for (int i = 0; i < screenSize - MINSIZE; i++)
+        for (unsigned int i = 0; i < screenSize - MINSIZE; i++)
         {
           if (i % 7 == 0)
           {
@@ -547,7 +543,7 @@ namespace Display
         //          << nameSize << "|" << cpuUSize << "|" << memoryUSize << "|" << timeSize << std::endl;
       }
 
-      void setComp(int mem)
+      void setComp(unsigned int mem)
       {
         // cpu = cp;
         memory = mem;
