@@ -52,6 +52,26 @@ class Thread
     ull id;
 
   public:
+    static ScheduleType IntToType(const int i)
+    {
+      ScheduleType t;
+      switch (i)
+      {
+        case fifo:
+          t = fifo;
+          break;
+        case roundrobin2:
+          t = roundrobin2;
+          break;
+        case shortestprocess:
+          t = shortestprocess;
+          break;
+        default:
+          t = fifo;
+          break;
+      }
+      return t;
+    }
     /**
      * Initialize a Thread 
      * @param  mem  memory this thread starts with
