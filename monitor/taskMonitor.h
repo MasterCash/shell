@@ -492,13 +492,13 @@ namespace Display
 
       void changeSize(int width, int hight)
       {
-        if (width < MINSIZE && width > 0)
+        if (width > 0 && static_cast<unsigned int>(width) < MINSIZE)
         {
           std::cout << "WARNING! Minimum size is " << MINSIZE << ". Setting to minimum" << std::endl;
           width = MINSIZE;
         }
         screenSize = width;
-        if (hight < MINHIGHT && hight > 0)
+        if (hight > 0 && static_cast<unsigned int>(hight) < MINHIGHT)
         {
           std::cout << "WARNING! Minimum hight is " << MINHIGHT << ". Setting to minimum" << std::endl;
           hight = MINHIGHT;
@@ -547,6 +547,11 @@ namespace Display
       {
         // cpu = cp;
         memory = mem;
+      }
+
+      void clear()
+      {
+        running.clear();
       }
     // Private functions
     private:

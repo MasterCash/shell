@@ -1,6 +1,7 @@
 # Makefile
 
 EXE = ../taskMonitor
+SHARE = share.txt
 
 SOURCES = $(wildcard *.cpp)
 HEADERS = $(wildcard *.h)
@@ -21,6 +22,7 @@ program: ${OBJECTS}
 clean:
 	-@rm -f ${EXE}
 	-@rm -f ${OBJECTS}
+	-@rm -f ${SHARE}
 .PHONY: run
 run: program
 	-@./${EXE}
