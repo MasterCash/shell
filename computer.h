@@ -201,7 +201,7 @@ namespace Shell
     void client()
     {
       //std::ofstream writing;
-      std::ofstream outfile ("monitor/share.txt",std::ofstream::binary);
+      std::ofstream outfile ("monitor/share.txt",std::ofstream::app);
       std::string input;
       char buffer[256];
 

@@ -11,7 +11,7 @@
 #include "taskMonitor.h"
 
 // create a mutlitask thread that just checks for the quit command
-void static check(bool &stop)
+void static check(bool &stop, Display::TaskMonitor &monitor)
 {
   std::string input;
   while(!stop)
@@ -21,6 +21,18 @@ void static check(bool &stop)
     {
       stop = true;
       break;
+    }
+    else if (input.substr(0,6).compare("-size=") == 0)
+    {
+      std::cout << "size: " << stoi(input.substr(6)) << std::endl;
+      while(monitor.isPrinting());
+      monitor.changeSize(stoi(input.substr(6)), -1);
+    }
+    else if (input.substr(0,7).compare("-hight=") == 0)
+    {
+      std::cout << "hight: " << stoi(input.substr(7)) << std::endl;
+      while(monitor.isPrinting());
+      monitor.changeSize(-1, stoi(input.substr(7)));
     }
   }
 }
@@ -33,14 +45,16 @@ void static talker(bool &stop, Display::TaskMonitor &monitor)
 
   while (!stop)
   {
+    usleep(100);
     infile.open("monitor/share.txt",std::ifstream::binary);
     for (unsigned int i = 0; i < line; i++)
     {
-      getline(infile, input);
-      if (input[0] == 'c')
+      if(!getline(infile, input))
       {
-        line = i;
+        line = 0;
         monitor.clear();
+        infile.close();
+        infile.open("monitor/share.txt",std::ifstream::binary);
       }
     }
     while (getline(infile, input))
@@ -227,7 +241,7 @@ int main(int argc, char *argv[])
     monitor.changeSize(size, hight);
   }
   // start the quitting thread.
-  std::thread c(check, std::ref(stop));
+  std::thread (check, std::ref(stop), std::ref(monitor)).detach();
   std::thread t(talker, std::ref(stop), std::ref(monitor));
   // set up the computer and enter in fake processes.
   monitor.setComp(200);
@@ -248,7 +262,6 @@ int main(int argc, char *argv[])
     usleep(500000);
     monitor.print();
   }
-  c.join();
   t.join();
 
   // safety return

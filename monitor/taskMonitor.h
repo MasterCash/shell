@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <cmath>
 #include <fstream>
+#include <bits/stdc++.h>
 
 #ifndef TASKMONITOR_H
 #define TASKMONITOR_H
@@ -163,7 +164,7 @@ namespace Display
         // store the entire print out.
         std::stringstream out;
         // clear the screen.
-        out << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+        out << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
         //out << "00000000011111111112222222222333333333344444444445555555555666666666677777777778\n";
         //out << "12345678901234567890123456789012345678901234567890123456789012345678901234567890\n";
         // make a empty process for dealing with empty spots.
@@ -461,6 +462,7 @@ namespace Display
         // std::cout << "ID: " << id << "-Name: " << name << "-Mem: " << memory
         //           << "-TID: " << threadId << "-Time: " << time << std::endl;
         running.push_back(newProcess);
+        std::sort(running.begin(), running.end(), compareProcess);
 
         return;
       }
@@ -497,7 +499,6 @@ namespace Display
           std::cout << "WARNING! Minimum size is " << MINSIZE << ". Setting to minimum" << std::endl;
           width = MINSIZE;
         }
-        screenSize = width;
         if (hight > 0 && static_cast<unsigned int>(hight) < MINHIGHT)
         {
           std::cout << "WARNING! Minimum hight is " << MINHIGHT << ". Setting to minimum" << std::endl;
@@ -553,6 +554,13 @@ namespace Display
       {
         running.clear();
       }
+
+      static bool compareProcess(process a, process b)
+      {
+        return a.id < b.id;
+      }
+
+      bool isPrinting() { return printing; }
     // Private functions
     private:
   };
