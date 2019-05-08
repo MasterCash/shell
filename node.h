@@ -57,8 +57,6 @@ namespace Shell
       std::array<int, 3> perms;
       // friends with a computer
       friend Computer;
-      // list of tasks (files only)
-      std::array<Task*> tasklist;
     public:
       // Constructors 
       Node(std::string n, bool dir, Node* p, int s, std::string u, std::string g)

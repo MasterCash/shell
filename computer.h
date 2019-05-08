@@ -978,7 +978,7 @@ namespace Shell
             {
               int threadCount = 0;
               file >> threadCount;
-              map<ull, ull> IDMapping;
+              std::map<ull, ull> IDMapping;
               // load in the thread config
               for(int i = 0; i < threadCount; i++)
               {
@@ -989,18 +989,40 @@ namespace Shell
                 auto threadIt = threads.find(id);
                 if(threadIt == threads.end())
                 {
-                  Thread* t = new Thread(mem, type);
-                  threads.emplace(id, Thread::IntToType(t));
+                  Thread* t = new Thread(mem, Thread::IntToType(type));
+                  IDMapping.emplace(id, t->ID());
+                  threads.emplace(t->ID(), t);
                 }
-
+                else
+                  IDMapping.emplace(id, id);
+                
               }
-
+              
+              int taskCount = 0;
+              // add task
+              file >> taskCount;
+              for(int i = 0; i < taskCount; i++)
+              {
+                std::string taskName;
+                ull taskTime, taskMem, threadID;
+                file >> taskName >> taskTime >> taskMem >> threadID;
+                auto threadIDIt = IDMapping.find(threadID);
+                if(threadIDIt == IDMapping.end())
+                  threadID = 0;
+                else
+                  threadID = threadIDIt->second;
+                
+                // add new task
+                auto threadmother = threads.find(threadID);
+                Task* t = new Task(taskTime, taskMem); 
+                if(!threadmother->second->AddTask(t))
+                  delete t;
+              }
+              
             }
-
           }
           
         }
-
         // Handle help command
         else if(command == "thread")
         {
