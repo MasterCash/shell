@@ -1207,6 +1207,8 @@ namespace Shell
                 std::string taskName;
                 ull taskTime, taskMem, threadID;
                 file >> taskName >> taskTime >> taskMem >> threadID;
+                std::cout << taskTime << std::endl;
+                std::cout << taskMem << std::endl;
                 auto threadIDIt = IDMapping.find(threadID);
                 if(threadIDIt == IDMapping.end())
                   threadID = 0;
@@ -1215,7 +1217,7 @@ namespace Shell
                 
                 // add new task
                 auto threadmother = threads.find(threadID);
-                Task* t = new Task(taskTime, taskMem); 
+                Task* t = new Task(taskName, taskTime, taskMem); 
                 if(!threadmother->second->AddTask(t))
                   delete t;
               }
