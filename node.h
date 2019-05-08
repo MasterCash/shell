@@ -11,6 +11,7 @@
 #include <chrono>
 #include <algorithm>
 #include "user.h"
+#include "task.h"
 
 #ifndef NODE_H
 #define NODE_H
@@ -37,6 +38,7 @@ namespace Shell
   class Node
   {
     private:
+      Shell::Task task;
       // a link to it's parent
       Node* parent;
       // list of children
@@ -59,7 +61,7 @@ namespace Shell
       friend Computer;
     public:
       // Constructors 
-      Node(std::string n, bool dir, Node* p, int s, std::string u, std::string g)
+      Node(std::string n, bool dir, Node* p, int s, std::string u, std::string g) : task(n, rand() % 100, 10)
       {
         auto time = std::chrono::system_clock::now(); 
         std::time_t timet = std::chrono::system_clock::to_time_t(time);
@@ -93,6 +95,7 @@ namespace Shell
 
       // Getters
       // not used really oh well
+      const Task GetTask() const { return task; }
       Node* Parent() const { return parent; }
       std::map<std::string, Node*> Children() const { return children; }
       std::string Name() const { return name; }
